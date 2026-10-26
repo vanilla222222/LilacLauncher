@@ -41,3 +41,21 @@ bash runtime/run.sh
 ```
 
 Preparation skips already applied patches. The diagnostics identity patch fixes `doctor_run::tests::the_desktop_id_is_the_application_id` after the Lilac shell rename. A failed test stops the build before release binaries are produced; do not skip the test suite to get past it.
+
+## Diagnosing delayed movement on X11
+
+Patch 0003 adds server-event and runtime-dispatch timestamps under the existing `CORDIAL_TRACE_KEYS=1` switch. These clocks have different origins: compare the intervals between matching events, not their absolute values. X11 timestamps wrap at 32 bits. A normal event interval compressed at dispatch is evidence of batching before delivery, not proof of its cause. A successful native bridge call is not proof of Roblox applying a key to movement.
+
+Key tracing records key identities, including password keystrokes. Sign in before the test and do not type passwords or chat during it. Run:
+
+```bash
+(umask 077; CORDIAL_TRACE_KEYS=1 bash runtime/run.sh 2> /tmp/lilac-keys-private.log)
+```
+
+Hold W, add D, release W, then release D. Close the runtime and share only movement events:
+
+```bash
+rg '\[cordial\] (x11-key down=[01] evdev=(17|30|31|32|57) |key path=native down=[01] evdev=(17|30|31|32|57) )' /tmp/lilac-keys-private.log
+```
+
+The timestamp patch is diagnostic. It has not been compiled in this environment; actual timing results remain pending a Mint run.

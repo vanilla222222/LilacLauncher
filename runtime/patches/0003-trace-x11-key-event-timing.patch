@@ -1,0 +1,21 @@
+diff --git a/crates/cordial-runtime/src/android/window.rs b/crates/cordial-runtime/src/android/window.rs
+index 77cf97c..f54f4e6 100644
+--- a/crates/cordial-runtime/src/android/window.rs
++++ b/crates/cordial-runtime/src/android/window.rs
+@@ -1723,6 +1723,16 @@ impl HostWindow {
+         };
+         let meta = android_meta_state(ev.state);
+         let now = self.now_ms();
++        // Compare server event spacing with dispatch spacing when movement
++        // releases appear late. The native trace only timestamps delivery,
++        // so queued presses and releases otherwise look like a fast tap.
++        if super::input::trace_keys() {
++            eprintln!(
++                "[cordial] x11-key down={} evdev={} server_ms={} dispatch_ms={now}",
++                u8::from(down), ev.detail as i32 - 8, ev.time,
++            );
++        }
++
+ 
+         if down && keysym == 0xff1b && self.escape_pointer_lock() {
+             return;
