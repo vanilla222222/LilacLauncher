@@ -1,0 +1,90 @@
+diff --git a/crates/cordial-runtime/src/bin/load.rs b/crates/cordial-runtime/src/bin/load.rs
+index fe8b604..109ca98 100644
+--- a/crates/cordial-runtime/src/bin/load.rs
++++ b/crates/cordial-runtime/src/bin/load.rs
+@@ -4060,6 +4060,7 @@ fn main() -> ExitCode {
+                                             );
+                                             cordial_runtime::webview::report(&v);
+                                         }
++                                        cordial_runtime::system_theme::probe(|name| lib.symbol(name));
+ 
+                                         // The transport for that vocabulary:
+                                         // `MessageBus.getMessageId` and
+diff --git a/crates/cordial-runtime/src/lib.rs b/crates/cordial-runtime/src/lib.rs
+index 9d2f5ca..5f0aa4e 100644
+--- a/crates/cordial-runtime/src/lib.rs
++++ b/crates/cordial-runtime/src/lib.rs
+@@ -86,3 +86,4 @@ pub mod stubs;
+ pub mod symtab;
+ pub mod unimplemented;
+ pub mod webview;
++pub mod system_theme;
+diff --git a/crates/cordial-runtime/src/system_theme.rs b/crates/cordial-runtime/src/system_theme.rs
+new file mode 100644
+index 0000000..f25b4ee
+--- /dev/null
++++ b/crates/cordial-runtime/src/system_theme.rs
+@@ -0,0 +1,63 @@
++//! Read-only discovery of the Android system-theme protocol vocabulary.
++//!
++//! The supplied classes2.dex declares these four natives as static, no-argument
++//! methods returning java.lang.String. Existing devctl/MCP tools expose no
++//! theme vocabulary, so this uses the same JNI shim as webview discovery.
++//! It does not publish a theme message or interpret a getter as a colour setter.
++
++use std::ffi::c_void;
++
++const CLASS: &str = "com/roblox/universalapp/systemtheme/JNISystemThemeProtocol";
++const GETTERS: &[(&str, &str)] = &[
++    ("protocol", "getProtocolName"),
++    ("theme-key", "getSystemThemeParamKey"),
++    ("set-message", "getSystemThemeSetThemeMessage"),
++    ("updated-message", "getSystemThemeUpdatedMessage"),
++];
++
++fn identifier(value: &str) -> Option<&str> {
++    (!value.is_empty() && value.len() <= 128
++        && value.bytes().all(|b| b.is_ascii_alphanumeric() || b"_-.:/".contains(&b)))
++        .then_some(value)
++}
++
++/// Query only verified getter signatures, at the existing webview-vocabulary
++/// discovery point after JNI initialisation. Disabled unless explicitly set.
++pub fn probe(mut symbol: impl FnMut(&str) -> Option<*mut c_void>) {
++    if std::env::var("LILAC_PROBE_SYSTEM_THEME").as_deref() != Ok("1") {
++        return;
++    }
++    println!("[lilac-system-theme] read-only vocabulary probe");
++    for (label, getter) in GETTERS {
++        let export = format!("Java_com_roblox_universalapp_systemtheme_JNISystemThemeProtocol_{getter}");
++        let Some(native) = symbol(&export) else {
++            println!("[lilac-system-theme] {label}=<not-exported>");
++            continue;
++        };
++        // SAFETY: the pointer is resolved from the loaded, never-unloaded engine
++        // export above. Its ()Ljava/lang/String; descriptor was checked in DEX;
++        // the existing shim supplies this process's JNIEnv and class object.
++        let result = unsafe {
++            cordial_linker_sys::game_activity::call_static_ret_string(native, CLASS)
++        };
++        match result {
++            Ok(value) => println!("[lilac-system-theme] {label}={}", identifier(&value).unwrap_or("<non-identifier>")),
++            Err(_) => println!("[lilac-system-theme] {label}=<call-failed>"),
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn vocabulary_logging_is_bounded_and_rejects_control_characters() {
++        assert_eq!(identifier("SystemTheme.set-theme"), Some("SystemTheme.set-theme"));
++        assert_eq!(identifier(""), None);
++        assert_eq!(identifier("theme\naccount-data"), None);
++        assert_eq!(identifier("\u{1b}[31m"), None);
++        assert_eq!(identifier(&"x".repeat(129)), None);
++        assert_eq!(identifier("{\"theme\":\"Dark\"}"), None);
++    }
++}

@@ -17,8 +17,13 @@ import zipfile
 import zlib
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-UI_PREFIXES = ("content/textures/ui/", "content/textures/universalapp/")
-PALETTE_VERSION = 1
+UI_PREFIXES = (
+    "content/textures/ui/",
+    "content/textures/universalapp/",
+    "extracontent/textures/ui/",
+    "extracontent/luapackages/packages/_index/foundationimages/foundationimages/spritesheets/",
+)
+PALETTE_VERSION = 2
 
 
 def paeth(a, b, c):

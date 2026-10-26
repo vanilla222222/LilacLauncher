@@ -61,6 +61,8 @@ class OverlayTests(unittest.TestCase):
         with zipfile.ZipFile(self.apk, "w") as archive:
             archive.writestr("assets/content/textures/ui/button.png", ui)
             archive.writestr("assets/content/textures/UniversalApp/panel.png", ui)
+            archive.writestr("assets/ExtraContent/textures/ui/ImageSet/LuaApp/img_set_1x_2.png", ui)
+            archive.writestr("assets/ExtraContent/LuaPackages/Packages/_Index/FoundationImages/FoundationImages/SpriteSheets/img_set_1x_1.png", ui)
             archive.writestr("assets/content/textures/grass.png", ui)
             archive.writestr("assets/ExtraContent/models/UniversalApp/UniversalApp.rbxm", b"signed bytecode stays untouched")
 
@@ -71,10 +73,12 @@ class OverlayTests(unittest.TestCase):
         overlay = self.root / "overlay"
         stats, rebuilt = theme.generate(self.apk, overlay, self.root / "manifest.json")
         self.assertTrue(rebuilt)
-        self.assertEqual(stats["written"], 2)
-        self.assertEqual(stats["scanned"], 2)
+        self.assertEqual(stats["written"], 4)
+        self.assertEqual(stats["scanned"], 4)
         self.assertTrue((overlay / "content/textures/ui/button.png").is_file())
         self.assertTrue((overlay / "content/textures/UniversalApp/panel.png").is_file())
+        self.assertTrue((overlay / "ExtraContent/textures/ui/ImageSet/LuaApp/img_set_1x_2.png").is_file())
+        self.assertTrue((overlay / "ExtraContent/LuaPackages/Packages/_Index/FoundationImages/FoundationImages/SpriteSheets/img_set_1x_1.png").is_file())
         self.assertFalse((overlay / "content/textures/grass.png").exists())
         with zipfile.ZipFile(self.apk) as archive:
             self.assertEqual(archive.read("assets/ExtraContent/models/UniversalApp/UniversalApp.rbxm"), b"signed bytecode stays untouched")
@@ -96,7 +100,7 @@ class OverlayTests(unittest.TestCase):
         stats, rebuilt = theme.generate(self.apk, overlay, manifest)
         self.assertFalse(rebuilt)
         self.assertTrue(marker.exists())
-        self.assertEqual(stats["written"], 2)
+        self.assertEqual(stats["written"], 4)
 
     def test_new_build_removes_stale_generated_files(self):
         overlay = self.root / "overlay"
