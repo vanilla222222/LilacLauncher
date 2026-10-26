@@ -56,3 +56,17 @@ document.querySelector('#add-game').onsubmit=e=>{e.preventDefault();const data=n
 window.lilac.onError(text=>{message.textContent=text;});
 window.lilac.status().then(state=>{for(const key of ['roblox','studio'])document.querySelector('#'+key+'-status').textContent=state[key]?'● Installed':'○ Not installed — see README';}).catch(()=>{message.textContent='Could not check Flatpak installations.';});
 render();search();
+
+const executorDialog=document.querySelector('#executor-dialog');
+const scriptEditor=document.querySelector('#script-editor');
+const draftStatus=document.querySelector('#draft-status');
+document.querySelector('#open-executor').onclick=()=>{
+ try{scriptEditor.value=localStorage.getItem('lilac-script-draft')||'';draftStatus.textContent='';}
+ catch{draftStatus.textContent='Could not read the saved draft.';}
+ executorDialog.showModal();scriptEditor.focus();
+};
+document.querySelector('#close-executor').onclick=()=>executorDialog.close();
+document.querySelector('#save-script').onclick=()=>{
+ try{localStorage.setItem('lilac-script-draft',scriptEditor.value);draftStatus.textContent='Draft saved on this device.';}
+ catch{draftStatus.textContent='Could not save the draft. Storage may be full.';}
+};

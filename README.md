@@ -45,6 +45,10 @@ npm test
 
 Tests cover response parsing, pagination cursors, failed thumbnail requests, rate limits, thumbnail host validation, and launch argument validation. Live API search and thumbnails were checked during development. Actual GUI/AppImage startup and joining through Sober still need verification on Linux Mint. GitHub-hosted builds currently require resolving the account billing block; local builds remain available.
 
-Developer testing tools are planned; no executor or client injection is included.
+## Executor workspace
+
+The third hub button opens a Luau script editor with a Save draft button. Drafts persist locally across restarts and AppImage replacements. Close or Escape dismisses the editor; save changes explicitly before closing.
+
+No execution backend is connected. Execute is disabled. This is a draft workspace only: no injection, attachment, event inspection, or execution is implemented.
 
 Unaffiliated with Roblox, Sober, or Vinegar.
