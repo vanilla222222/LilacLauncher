@@ -25,7 +25,7 @@ No APKs, Roblox assets or decompiled code belong in this repository. The upstrea
 
 ## What has and has not been verified
 
-Verified here: upstream source checkout, patch application/reversal, shell syntax, setup refusal paths, build preflight diagnostics. This environment has no Cargo, Clang, GTK build tools or graphical display. Therefore neither `cargo test --workspace` nor `cargo build --release` could run, and this fork has not launched Roblox. Runtime behaviour is **INFERRED** from the unchanged upstream implementation until tested on Mint.
+Verified here: upstream source checkout, patch application/reversal, shell syntax, setup refusal paths, build preflight diagnostics. This environment has no Cargo, Clang, GTK build tools or graphical display. Therefore neither `cargo test --workspace` nor `cargo build --release` could run, and this fork has not launched Roblox. The development build was subsequently run on Mint/X11: the tester reported working menus and games, then confirmed overlapping movement works after patch 0004. This is user-reported verification, not an independent runtime test here. See [the baseline](BASELINE.md).
 
 AppImage packaging is not configured for this fork yet. Do not run upstream release workflows or publish packages under Cordial's identity; they still refer to its repositories and branding. First get a repeatable source build and successful Home/game session, then adapt packaging.
 
@@ -58,13 +58,13 @@ Hold W, add D, release W, then release D. Close the runtime and share only movem
 rg '\[cordial\] (x11-key down=[01] evdev=(17|30|31|32|57) |key path=native down=[01] evdev=(17|30|31|32|57) )' /tmp/lilac-keys-private.log
 ```
 
-The timestamp patch is diagnostic. It has not been compiled in this environment; actual timing results remain pending a Mint run.
+The timestamp patch is diagnostic. It has not been compiled in this environment; a Mint trace subsequently showed delayed dispatch of movement-key releases (see patch 0004 below).
 
 ## X11 buffered-input fix (patch 0004)
 
 The old input pump returned whenever the X11 socket was unreadable, even if Xlib already held queued input. That is a queue-management bug: XPending and other Xlib calls can move data off the socket into userspace. Patch 0004 removes the socket-only gate and retains XPending before each XNextEvent and the 64-event drain bound.
 
-A movement trace showed release events delayed by approximately 2.4 and 2.9 seconds relative to the fastest observed delivery. Buffered-event starvation is a matching cause (**INFERRED**); resolving the reported gameplay symptom remains unverified until the patched client is tested. Timestamp logging can add overhead, so first retest ordinary movement without tracing, against the prior build in the same game.
+A movement trace showed release events delayed by approximately 2.4 and 2.9 seconds relative to the fastest observed delivery. Buffered-event starvation is a matching cause from source inspection; after rebuilding with patch 0004, the tester reported that the movement issue was fixed. This is a successful user-reported regression check, not an independently repeated controlled measurement. Timestamp logging can add overhead; use the ordinary untraced build for normal play.
 
 Reference: https://www.x.org/releases/X11R7.6/doc/libX11/specs/libX11/libX11.html (Event Queue Management). XPending accounts for events queued inside Xlib; socket readability does not.
 

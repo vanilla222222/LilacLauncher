@@ -1,0 +1,40 @@
+{
+  "baseline": "runtime-baseline-2026-10-26",
+  "source_setup_commit": "4f553809f608e4d2f3338f1a5bec2eee2b86f1c4",
+  "upstream_repository": "https://github.com/luohoa97/cordial",
+  "upstream_commit": "cf8aa92fe0055e652ff0aa8dc01d146979d20d6b",
+  "verification": {
+    "environment": "Linux Mint 22.3 x86_64, Cinnamon/X11; Ryzen 5 5500; Radeon RX 580 2048SP",
+    "reported_working": [
+      "Runtime opens Roblox Home and menus",
+      "Experiences launch",
+      "Overlapping movement keys respond correctly after patch 0004"
+    ],
+    "evidence": "Reported by the tester after building and running on Mint; not independently reproduced in the build environment.",
+    "not_established": [
+      "Long-session stability",
+      "Wayland or other hardware compatibility",
+      "AppImage packaging",
+      "Native Roblox Home customisation",
+      "Arbitrary script execution"
+    ]
+  },
+  "patches": [
+    {
+      "path": "patches/0001-lilac-development-identity.patch",
+      "sha256": "e99d3b7884f5d86b43810d228d89f3e520b61ed5972cd77b88cb764058e59f02"
+    },
+    {
+      "path": "patches/0002-align-diagnostics-desktop-identity.patch",
+      "sha256": "150c3dd3b8a3a7eb486979a82809153540e7e4b7b731757268f5c90ca7b2f9f6"
+    },
+    {
+      "path": "patches/0003-trace-x11-key-event-timing.patch",
+      "sha256": "51c70adbe5249fe0ee3401c2a267e948d9aeb32a354bb383e4495e446354ac30"
+    },
+    {
+      "path": "patches/0004-drain-buffered-x11-events.patch",
+      "sha256": "c938bf0b40d327f117746535d6b0a7f2aa412a7febc590304ec06de50b5035dd"
+    }
+  ]
+}
