@@ -13,4 +13,15 @@ fi
 state_root="${LILAC_RUNTIME_STATE:-$HOME/.local/share/lilac-runtime-dev}"
 mkdir -p "$state_root/data" "$state_root/cache" "$state_root/config"
 export XDG_DATA_HOME="$state_root/data" XDG_CACHE_HOME="$state_root/cache" XDG_CONFIG_HOME="$state_root/config"
+if [[ "${LILAC_HOME_THEME:-on}" != off ]]; then
+  # Generated outside the APK and outside the user's own overlay. Patch 0009
+  # adds this as a lower-priority layer, so explicit user overlays still win.
+  export LILAC_HOME_OVERLAY="$state_root/config/cordial/lilac-home-overlay"
+  python3 "$root/lilac_home_theme.py" \
+    --data-home "$XDG_DATA_HOME" \
+    --config-home "$XDG_CONFIG_HOME" \
+    --apk "${CORDIAL_APK:-}"
+else
+  unset LILAC_HOME_OVERLAY
+fi
 exec "$binary" "$@"

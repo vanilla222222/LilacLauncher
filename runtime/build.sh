@@ -35,6 +35,7 @@ pkg-config --exists libpipewire-0.3 webkitgtk-6.0 || { echo 'PipeWire and WebKit
 [[ -d "$source_dir/.git" ]] || { echo 'Run bash runtime/prepare.sh first.' >&2; exit 2; }
 [[ $(git -C "$source_dir" rev-parse HEAD) == cf8aa92fe0055e652ff0aa8dc01d146979d20d6b ]] || { echo 'Wrong upstream revision.' >&2; exit 2; }
 python3 "$root/patch-stack.py" check "$source_dir"
+python3 -m unittest discover -s "$root" -p 'lilac_home_theme_test.py' -v
 export CC=clang CXX=clang++
 # Keep this fork's output separate from other Cordial builds.
 export CARGO_TARGET_DIR="$root/target"

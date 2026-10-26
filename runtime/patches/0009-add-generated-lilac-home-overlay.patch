@@ -1,0 +1,19 @@
+diff --git a/crates/cordial-runtime/src/android/asset.rs b/crates/cordial-runtime/src/android/asset.rs
+index c056a93..8569f36 100644
+--- a/crates/cordial-runtime/src/android/asset.rs
++++ b/crates/cordial-runtime/src/android/asset.rs
+@@ -1,5 +1,14 @@
+ fn layers() -> Vec<OverlayLayer> {
+     let mut layers = PLUGIN_OVERLAYS.lock().map(|s| s.clone()).unwrap_or_default();
++    // LilacRuntime generates this layer from the imported build before the
++    // shell starts. It stays below the user's root, so an explicit overlay
++    // still wins, and no Roblox archive or extracted asset is written.
++    if let Some(root) = std::env::var_os("LILAC_HOME_OVERLAY").map(PathBuf::from) {
++        layers.push(OverlayLayer {
++            source: OverlaySource::Plugin("lilac-home-theme".into()),
++            root,
++        });
++    }
+     layers.push(OverlayLayer { source: OverlaySource::User, root: user_root() });
+     layers
+ }
