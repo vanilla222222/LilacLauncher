@@ -95,3 +95,5 @@ The follow-up installs the theme during application startup, explicitly colours 
 Startup prints `[lilac-theme] palette v2 active` when that stylesheet is loaded. CSS parsing errors are logged with the same prefix. This confirms loading, not correct rendering. The run script now refuses binaries whose successful-build patch manifest does not match the current source stack, preventing a failed rebuild from silently opening an older executable. After pulling this update, complete `prepare.sh` and `build.sh` before `run.sh`.
 
 Visual verification remains pending a Mint run. This palette themes the GTK shell; Cinnamon-managed native X11 window decorations and Roblox-rendered UI are separate surfaces.
+
+Patch 0008 shortens the Discord application-ID preference description to fit the upstream 200-byte drawable-text limit. The previous 207-byte description caused the built-in plugin to be rejected during consent tests; the error mentioned control characters but the violated condition was length. All built-in preference titles, descriptions, groups and option labels were checked against that byte bound and control-character rule.

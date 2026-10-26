@@ -1,0 +1,11 @@
+--- a/plugins/discord-presence/plugin.json
++++ b/plugins/discord-presence/plugin.json
+@@ -13,7 +13,7 @@
+     {
+       "key": "client_id",
+       "title": "Discord application ID",
+-      "description": "Leave blank to use the upstream Discord application identity. To use your own name and icon instead, paste that application's ID from discord.com/developers/applications. Digits only, and it is not a secret.",
++      "description": "Leave blank to use the upstream Discord identity. For your own name and icon, enter the numeric application ID from discord.com/developers/applications.",
+       "type": "text",
+       "default": ""
+     }
