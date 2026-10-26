@@ -1,8 +1,10 @@
 diff --git a/crates/cordial-runtime/src/android/asset.rs b/crates/cordial-runtime/src/android/asset.rs
-index c056a93..8569f36 100644
 --- a/crates/cordial-runtime/src/android/asset.rs
 +++ b/crates/cordial-runtime/src/android/asset.rs
-@@ -1,5 +1,14 @@
+@@ -420,8 +420,17 @@
+ /// This mirrors the rule [`crate::flags::resolve`] already uses, for the
+ /// reason recorded there — an explicit choice the user made must not be
+ /// silently overridden by something they installed to do something else.
  fn layers() -> Vec<OverlayLayer> {
      let mut layers = PLUGIN_OVERLAYS.lock().map(|s| s.clone()).unwrap_or_default();
 +    // LilacRuntime generates this layer from the imported build before the

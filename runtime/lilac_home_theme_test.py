@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import struct
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -108,6 +109,29 @@ class OverlayTests(unittest.TestCase):
         self.assertEqual(stats["written"], 1)
         self.assertFalse((overlay / "content/textures/ui/button.png").exists())
         self.assertTrue((overlay / "content/textures/ui/new.png").exists())
+
+    def test_overlay_patch_applies_below_module_documentation(self):
+        source = self.root / "crates/cordial-runtime/src/android/asset.rs"
+        source.parent.mkdir(parents=True)
+        source.write_text(
+            "//! Module documentation keeps layers() away from line one.\n\n"
+            "/// This mirrors the rule [`crate::flags::resolve`] already uses, for the\n"
+            "/// reason recorded there — an explicit choice the user made must not be\n"
+            "/// silently overridden by something they installed to do something else.\n"
+            "fn layers() -> Vec<OverlayLayer> {\n"
+            "    let mut layers = PLUGIN_OVERLAYS.lock().map(|s| s.clone()).unwrap_or_default();\n"
+            "    layers.push(OverlayLayer { source: OverlaySource::User, root: user_root() });\n"
+            "    layers\n"
+            "}\n"
+        )
+        patch = Path(__file__).parent / "patches/0009-add-generated-lilac-home-overlay.patch"
+        result = subprocess.run(
+            ["git", "apply", "--check", str(patch)],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_latest_complete_build_is_selected_numerically(self):
         builds = self.root / "data/cordial/builds"
