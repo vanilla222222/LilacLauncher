@@ -72,7 +72,7 @@ Apply with `bash runtime/prepare.sh`, rebuild with `bash runtime/build.sh`, and 
 
 ## Lilac runtime theme experiment
 
-The `runtime-lilac-theme` branch adds patch 0005 after the four baseline patches. It applies a dark lilac GTK/libadwaita palette to the runtime shell, header, settings and transient dialogs, and replaces user-facing shell wording with LilacRuntime. A new flower icon replaces the upstream artwork for source builds. About identifies the developer and upstream contributors; GPL and third-party notices remain in source and the embedded provenance notice is retained. Internal paths, protocol names, crate names and environment variables remain unchanged for compatibility.
+The `runtime-lilac-theme` branch adds theme patch 0005 and corrective patch 0006 after the four baseline patches. Patch 0006 restores the internal `Brand::Cordial` enum references in tests; the displayed product name remains LilacRuntime. It applies a dark lilac GTK/libadwaita palette to the runtime shell, header, settings and transient dialogs, and replaces user-facing shell wording with LilacRuntime. A new flower icon replaces the upstream artwork for source builds. About identifies the developer and upstream contributors; GPL and third-party notices remain in source and the embedded provenance notice is retained. Internal paths, protocol names, crate names and environment variables remain unchanged for compatibility.
 
 ```bash
 git fetch origin

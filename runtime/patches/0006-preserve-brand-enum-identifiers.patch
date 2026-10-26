@@ -1,0 +1,23 @@
+--- a/crates/cordial-shell/src/branding.rs
++++ b/crates/cordial-shell/src/branding.rs
+@@ -288,7 +288,7 @@
+         assert_eq!(resolve(Some("frostbite"), 6, 15), Brand::Frostbite);
+         // On the day itself, asked for the ordinary thing -- which is what
+         // somebody debugging a screenshot on April 1st needs.
+-        assert_eq!(resolve(Some("cordial"), 4, 1), Brand::LilacRuntime);
++        assert_eq!(resolve(Some("cordial"), 4, 1), Brand::Cordial);
+         // Case and whitespace, because this gets typed by hand.
+         assert_eq!(resolve(Some("  FrostBite "), 6, 15), Brand::Frostbite);
+     }
+@@ -296,9 +296,9 @@
+     #[test]
+     fn an_unset_or_unrecognised_value_leaves_the_calendar_in_charge() {
+         assert_eq!(resolve(None, 4, 1), Brand::Frostbite);
+-        assert_eq!(resolve(None, 6, 15), Brand::LilacRuntime);
++        assert_eq!(resolve(None, 6, 15), Brand::Cordial);
+         // A typo behaves like not having asked, rather than refusing to launch.
+-        assert_eq!(resolve(Some("frostbight"), 6, 15), Brand::LilacRuntime);
++        assert_eq!(resolve(Some("frostbight"), 6, 15), Brand::Cordial);
+         assert_eq!(resolve(Some(""), 12, 21), Brand::Frostbite);
+     }
+ 
