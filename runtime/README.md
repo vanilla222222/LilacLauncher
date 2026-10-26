@@ -6,7 +6,9 @@ The patch names the shell LilacRuntime and gives its application a separate D-Bu
 
 ## Prepare on Mint 22.x
 
-Use a Rust toolchain with Cargo available on PATH. Install native dependencies:
+Install Rust through [rustup](https://rustup.rs), then run `rustup update stable`. The build script selects rustup’s stable toolchain when available, avoiding Mint’s potentially older system Cargo. Without rustup it uses Cargo on PATH and refuses versions older than 1.78, the minimum for the version-4 lockfile. Dependencies can require a newer compiler, so current stable is recommended. Do not downgrade or delete Cargo.lock. Set `LILAC_RUST_TOOLCHAIN` only if deliberately selecting another installed rustup toolchain.
+
+Install native dependencies:
 
 ```bash
 sudo apt install git build-essential clang cmake pkg-config libgtk-4-dev libadwaita-1-dev libpipewire-0.3-dev libwebkitgtk-6.0-dev

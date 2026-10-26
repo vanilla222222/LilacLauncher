@@ -2,7 +2,31 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 source_dir="${LILAC_RUNTIME_SOURCE:-$root/source}"
-for tool in cargo clang cmake pkg-config; do
+# Prefer rustup's current stable over distribution Cargo, which can be too old
+# for the pinned version-4 lockfile. No toolchain is installed automatically.
+if command -v rustup >/dev/null; then
+  cargo_cmd=(rustup run "${LILAC_RUST_TOOLCHAIN:-stable}" cargo)
+else
+  cargo_cmd=(cargo)
+fi
+if ! cargo_version=$("${cargo_cmd[@]}" --version 2>/dev/null); then
+  echo 'Rust/Cargo unavailable. Install rustup from https://rustup.rs, then run: rustup update stable' >&2
+  exit 2
+fi
+if [[ "$cargo_version" =~ ^cargo[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+  major=${BASH_REMATCH[1]}; minor=${BASH_REMATCH[2]}
+  if (( major < 1 || (major == 1 && minor < 78) )); then
+    echo "$cargo_version cannot read the pinned version-4 lockfile; Cargo >=1.78 is required." >&2
+    echo 'Install rustup from https://rustup.rs if needed, then run: rustup update stable' >&2
+    echo 'Keep Cargo.lock unchanged and rerun this script.' >&2
+    exit 2
+  fi
+else
+  echo "Could not recognise Cargo version: $cargo_version" >&2
+  exit 2
+fi
+printf 'Using %s\n' "$cargo_version"
+for tool in clang cmake pkg-config; do
   command -v "$tool" >/dev/null || { echo "Missing build tool: $tool. See runtime/README.md." >&2; exit 2; }
 done
 pkg-config --atleast-version=4.12 gtk4 || { echo 'GTK4 development files >=4.12 required.' >&2; exit 2; }
@@ -15,6 +39,6 @@ export CC=clang CXX=clang++
 # Keep this fork's output separate from other Cordial builds.
 export CARGO_TARGET_DIR="$root/target"
 cd "$source_dir"
-cargo test --workspace --locked
-cargo build --release --locked --features cordial-shell/webview
+"${cargo_cmd[@]}" test --workspace --locked
+"${cargo_cmd[@]}" build --release --locked --features cordial-shell/webview
 printf 'Built development binaries in %s/release. Run bash runtime/run.sh from LilacLauncher.\n' "$CARGO_TARGET_DIR"
