@@ -2,7 +2,7 @@
 
 This is a reproducible development fork of [Cordial](https://github.com/luohoa97/cordial), pinned to `cf8aa92fe0055e652ff0aa8dc01d146979d20d6b` (0.34.0). It is not a newly written compatibility engine and no compiled runtime is supplied yet.
 
-The patch names the shell LilacRuntime and gives its application a separate D-Bus identity. The run script redirects all three XDG file roots to `~/.local/share/lilac-runtime-dev`. Upstream icons, internal crate names, runtime window class, keyring implementation and licence notices remain. This is a source-development setup, not a finished distributable.
+The patch names the shell LilacRuntime and gives its application a separate D-Bus identity. The run script redirects all three XDG file roots to `~/.local/share/lilac-runtime-dev`. On the working baseline, upstream icons, internal crate names, runtime window class, keyring implementation and licence notices remain. The optional theme branch replaces the shell artwork and human-facing labels while keeping internal identifiers and source attribution. This is a source-development setup, not a finished distributable.
 
 ## Prepare on Mint 22.x
 
@@ -69,3 +69,21 @@ A movement trace showed release events delayed by approximately 2.4 and 2.9 seco
 Reference: https://www.x.org/releases/X11R7.6/doc/libX11/specs/libX11/libX11.html (Event Queue Management). XPending accounts for events queued inside Xlib; socket readability does not.
 
 Apply with `bash runtime/prepare.sh`, rebuild with `bash runtime/build.sh`, and run normally with `bash runtime/run.sh`. Verified here: sequential patch application, resulting source and whitespace checks. Cargo tests/build could not run here because Cargo is absent. They remain required by build.sh on the development machine.
+
+## Lilac runtime theme experiment
+
+The `runtime-lilac-theme` branch adds patch 0005 after the four baseline patches. It applies a dark lilac GTK/libadwaita palette to the runtime shell, header, settings and transient dialogs, and replaces user-facing shell wording with LilacRuntime. A new flower icon replaces the upstream artwork for source builds. About identifies the developer and upstream contributors; GPL and third-party notices remain in source and the embedded provenance notice is retained. Internal paths, protocol names, crate names and environment variables remain unchanged for compatibility.
+
+```bash
+git fetch origin
+git switch runtime-lilac-theme
+bash runtime/prepare.sh
+bash runtime/build.sh
+bash runtime/run.sh
+```
+
+Close any existing runtime before opening the new build. For a palette comparison, restart with `LILAC_THEME=off bash runtime/run.sh`. That keeps the new labels and artwork but skips the lilac stylesheet and forced dark mode. Baseline source is still available on `runtime-baseline-2026-10-26`.
+
+The CSS targets GTK chrome. It does not recolour Roblox's rendered Home screen or game canvas, and X11's native game window decoration remains managed by Cinnamon. Home-screen work is a separate experiment after this theme is verified.
+
+Validation here: ordered patch application, source/prose audit, preserved licence/provenance files, icon XML and square geometry, and whitespace checks. Cargo and GTK4 are unavailable here, so compilation, CSS parser acceptance and visual appearance remain **INFERRED** until checked on Mint. Inspect the first-run screen, settings, About, profile dialogs, diagnostics and error messages, then run the same movement test as the baseline.

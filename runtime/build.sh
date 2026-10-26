@@ -26,7 +26,7 @@ else
   exit 2
 fi
 printf 'Using %s\n' "$cargo_version"
-for tool in clang cmake pkg-config; do
+for tool in clang cmake pkg-config python3; do
   command -v "$tool" >/dev/null || { echo "Missing build tool: $tool. See runtime/README.md." >&2; exit 2; }
 done
 pkg-config --atleast-version=4.12 gtk4 || { echo 'GTK4 development files >=4.12 required.' >&2; exit 2; }
@@ -34,12 +34,7 @@ pkg-config --atleast-version=1.5 libadwaita-1 || { echo 'libadwaita development 
 pkg-config --exists libpipewire-0.3 webkitgtk-6.0 || { echo 'PipeWire and WebKitGTK 6.0 development files are required for this build.' >&2; exit 2; }
 [[ -d "$source_dir/.git" ]] || { echo 'Run bash runtime/prepare.sh first.' >&2; exit 2; }
 [[ $(git -C "$source_dir" rev-parse HEAD) == cf8aa92fe0055e652ff0aa8dc01d146979d20d6b ]] || { echo 'Wrong upstream revision.' >&2; exit 2; }
-for patch in "$root"/patches/*.patch; do
-  git -C "$source_dir" apply --reverse --check "$patch" || {
-    echo 'Lilac patches are not current. Run bash runtime/prepare.sh, then retry.' >&2
-    exit 2
-  }
-done
+python3 "$root/patch-stack.py" check "$source_dir"
 export CC=clang CXX=clang++
 # Keep this fork's output separate from other Cordial builds.
 export CARGO_TARGET_DIR="$root/target"
