@@ -58,3 +58,7 @@ The third hub button opens a Luau script editor with a Save draft button. Drafts
 No execution backend is connected. Execute is disabled. This is a draft workspace only: no injection, attachment, event inspection, or execution is implemented.
 
 Unaffiliated with Roblox, Sober, or Vinegar.
+
+## Runtime development
+
+The separate LilacRuntime development fork setup is in [runtime/README.md](runtime/README.md). It pins Cordial source and applies a small identity patch; no compiled runtime or AppImage is supplied yet.

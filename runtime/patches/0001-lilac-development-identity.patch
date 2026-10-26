@@ -1,0 +1,60 @@
+diff --git a/crates/cordial-shell/src/branding.rs b/crates/cordial-shell/src/branding.rs
+index eb5ee43..941e09e 100644
+--- a/crates/cordial-shell/src/branding.rs
++++ b/crates/cordial-shell/src/branding.rs
+@@ -42,11 +42,11 @@ pub enum Brand {
+ }
+ 
+ impl Brand {
+-    /// The name the window, the about dialog and the task switcher use.
++    /// The development fork name; upstream icons and attribution are retained.
+     pub fn name(self) -> &'static str {
+         match self {
+-            Brand::Cordial => "Cordial",
+-            Brand::Frostbite => "Frostbite",
++            Brand::Cordial => "LilacRuntime",
++            Brand::Frostbite => "LilacRuntime",
+         }
+     }
+ 
+diff --git a/crates/cordial-shell/src/main.rs b/crates/cordial-shell/src/main.rs
+index ab0ce34..e771469 100644
+--- a/crates/cordial-shell/src/main.rs
++++ b/crates/cordial-shell/src/main.rs
+@@ -90,8 +90,9 @@ use libadwaita::prelude::*;
+ use std::cell::RefCell;
+ use std::rc::Rc;
+ 
+-/// Must match `packaging/io.github.luohoa97.Cordial.desktop`'s file name and
+-/// `StartupWMClass`. GNOME Shell uses the application id to find the desktop
++/// Must match `packaging/io.github.vanilla222222.LilacRuntime.desktop`'s file name and
++/// the shell bus identity. The runtime retains its upstream window class.
++/// GNOME Shell uses the application id to find the desktop
+ /// entry for window-to-launcher matching; let the two drift and the taskbar
+ /// icon and startup notification silently stop matching up rather than erroring.
+ ///
+@@ -100,7 +101,7 @@ use std::rc::Rc;
+ /// registers on the session bus, and a second invocation carrying a URL hands
+ /// that URL to the process already registered and exits, which is why clicking
+ /// a link on a website wakes the launcher instead of starting a second one.
+-const APP_ID: &str = "io.github.luohoa97.Cordial";
++const APP_ID: &str = "io.github.vanilla222222.LilacRuntime";
+ 
+ fn main() -> libadwaita::glib::ExitCode {
+     // **Answered before the `GApplication` exists, and that is the whole
+diff --git a/packaging/io.github.vanilla222222.LilacRuntime.desktop b/packaging/io.github.vanilla222222.LilacRuntime.desktop
+new file mode 100644
+index 0000000..ea810bf
+--- /dev/null
++++ b/packaging/io.github.vanilla222222.LilacRuntime.desktop
+@@ -0,0 +1,10 @@
++[Desktop Entry]
++Type=Application
++Name=LilacRuntime (development)
++GenericName=Roblox Runtime
++Comment=Development fork of Cordial
++Exec=lilac-runtime %u
++Icon=io.github.luohoa97.Cordial
++Terminal=false
++Categories=Game;
++StartupWMClass=Cordial
