@@ -1,33 +1,58 @@
 const message=document.querySelector('#message');
-let games=[];
-try { const saved=JSON.parse(localStorage.getItem('games')||'[]'); if(Array.isArray(saved)) games=saved.filter(g=>typeof g.title==='string'&&typeof g.url==='string'&&Array.isArray(g.tags)); } catch {message.textContent='Saved library could not be loaded.';}
-function save(){try{localStorage.setItem('games',JSON.stringify(games));}catch{message.textContent='Could not save your library. Storage may be full.';}render();}
+const status=document.querySelector('#results-status');
+let library={};let results=[];let cursor=null;let query='';let view='browse';let requestId=0;let loading=false;
+const key='lilac-library-v2';
+try{
+ const saved=JSON.parse(localStorage.getItem(key)||'null');
+ if(saved&&typeof saved==='object'&&!Array.isArray(saved))library=saved;
+ else {const old=JSON.parse(localStorage.getItem('games')||'[]');for(const game of Array.isArray(old)?old:[]){const match=String(game.url).match(/^https:\/\/(?:www\.)?roblox\.com\/games\/(\d+)/);if(match)library[match[1]]={placeId:match[1],title:String(game.title),saved:true,hidden:!!game.hidden,slop:game.tags?.includes('slop')||false};}}
+}catch{message.textContent='Saved library could not be read. Your previous data has not been changed.';}
+function persist(){try{localStorage.setItem(key,JSON.stringify(library));}catch{message.textContent='Could not save your filters. Storage may be full.';}render();}
+function entry(game){return library[game.placeId]||{};}
+function update(game,changes){library[game.placeId]={...game,...entry(game),...changes};persist();}
+async function launch(key,placeId,button){button.disabled=true;message.textContent='Starting…';try{const result=await window.lilac.launch(key,placeId);message.textContent=result.ok?'Launch requested. First startup may take a moment.':result.error;}catch{message.textContent='Could not contact the launcher.';}finally{button.disabled=false;}}
 function render(){
  const root=document.querySelector('#games');root.replaceChildren();
- games.forEach((game,index)=>{
-  if(game.hidden&&!document.querySelector('#show-hidden').checked)return;
-  const row=document.createElement('article');row.className='game';
-  const name=document.createElement('strong');name.textContent=game.title;row.append(name);
-  const tags=document.createElement('span');tags.textContent=game.tags.join(' · ');row.append(tags);
-  function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;row.append(b);}
-  button(game.tags.includes('slop')?'Unmark slop':'Mark slop',()=>{if(game.tags.includes('slop'))game.tags=game.tags.filter(t=>t!=='slop');else{game.tags.push('slop');game.hidden=true;}save();});
-  button(game.hidden?'Restore':'Hide',()=>{game.hidden=!game.hidden;save();});
-  button('Remove',()=>{games.splice(index,1);save();});
-  root.append(row);
- });
- if(!root.childElementCount){const p=document.createElement('p');p.className='empty';p.textContent='Nothing here yet. Add a game above, or check your hidden games.';root.append(p);}
+ const list=view==='browse'?results:Object.values(library).filter(g=>view==='hidden'?g.hidden:g.saved);
+ let count=0;
+ for(const game of list){
+ const state=entry(game);if(view!=='hidden'&&state.hidden&&!document.querySelector('#show-hidden').checked)continue;
+ count++;const card=document.createElement('article');card.className='game-card';
+ if(game.image){const image=document.createElement('img');image.src=game.image;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.onerror=()=>image.remove();card.append(image);}
+ const title=document.createElement('h4');title.textContent=game.title;card.append(title);
+ const info=document.createElement('p');info.textContent=[game.players!==undefined?Number(game.players).toLocaleString()+' playing':null,game.maturity,state.slop?'Marked slop':null,state.hidden?'Hidden':null].filter(Boolean).join(' · ');card.append(info);
+ const actions=document.createElement('div');actions.className='card-actions';
+ function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=()=>fn(b);actions.append(b);}
+ button('Play ↗',b=>launch('roblox',game.placeId,b));
+ button(state.saved?'Unsave':'Save',()=>update(game,{saved:!state.saved}));
+ button(state.slop?'Unmark slop':'Mark slop',()=>update(game,{slop:!state.slop,...(!state.slop?{hidden:true}:{})}));
+ button(state.hidden?'Restore':'Hide',()=>update(game,{hidden:!state.hidden}));
+ card.append(actions);root.append(card);
+ }
+ if(!count){const p=document.createElement('p');p.className='empty';p.textContent=loading?'Searching Roblox…':view==='hidden'?'No hidden games.':view==='saved'?'Save games from Browse, or add a link below.':'No visible games. Try another search, Show hidden, or load more.';root.append(p);}
+ document.querySelector('#load-more').hidden=view!=='browse'||!cursor;
+ document.querySelector('#load-more').disabled=loading;
+ document.querySelector('#search-button').disabled=loading;
+ document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
 }
-document.querySelector('#add-game').onsubmit=e=>{
- e.preventDefault();const data=new FormData(e.target);const title=data.get('title').trim();
- try{const url=new URL(data.get('url'));if(url.protocol!=='https:'||!['roblox.com','www.roblox.com'].includes(url.hostname)||!/^\/games\/\d+(\/|$)/.test(url.pathname)||!title)throw Error();games.push({title,url:url.href,tags:[],hidden:false});save();e.target.reset();message.textContent='Game saved. Tags filter this launcher’s library only.';}
- catch{message.textContent='Enter a name and a Roblox game link such as https://www.roblox.com/games/123/name.';}
-};
+async function search(more=false){
+ const term=more?query:document.querySelector('#query').value.trim();if(!term)return;
+ const id=++requestId;loading=true;view='browse';
+ if(!more){query=term;results=[];cursor=null;}
+ status.textContent='Searching Roblox…';render();
+ try{const response=await window.lilac.search({query:term,cursor:more?cursor:null});if(id!==requestId)return;if(!response.ok)throw Error(response.error);
+ const seen=new Set(results.map(g=>g.placeId));results.push(...response.games.filter(g=>!seen.has(g.placeId)));cursor=response.nextPageToken;
+ status.textContent=results.length+' results loaded. Your hidden games are filtered on this device.';
+ }catch(error){if(id===requestId)status.textContent=error.message||'Search failed. Check your connection and retry.';}
+ finally{if(id===requestId){loading=false;render();}}
+}
+document.querySelector('#search-games').onsubmit=e=>{e.preventDefault();search();};
+document.querySelector('#load-more').onclick=()=>search(true);
 document.querySelector('#show-hidden').onchange=render;
-document.querySelectorAll('[data-launch]').forEach(button=>button.onclick=async()=>{
- button.disabled=true;message.textContent='Starting…';
- try{const result=await window.lilac.launch(button.dataset.launch);message.textContent=result.ok?'Launch requested. First startup may take a moment.':result.error;}
- catch{message.textContent='Could not contact the launcher.';}finally{button.disabled=false;}
-});
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render();});
+document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{document.querySelector('#query').value=b.dataset.query;search();});
+document.querySelectorAll('[data-launch]').forEach(b=>b.onclick=()=>launch(b.dataset.launch,undefined,b));
+document.querySelector('#add-game').onsubmit=e=>{e.preventDefault();const data=new FormData(e.target);try{const url=new URL(data.get('url'));const match=url.pathname.match(/^\/games\/(\d{1,16})(?:\/|$)/);const title=data.get('title').trim();if(url.protocol!=='https:'||!['roblox.com','www.roblox.com'].includes(url.hostname)||!match||!title)throw Error();update({placeId:match[1],title},{saved:true});view='saved';render();e.target.reset();message.textContent='Game saved.';}catch{message.textContent='Enter a game name and a valid https://www.roblox.com/games/123/name link.';}};
 window.lilac.onError(text=>{message.textContent=text;});
-window.lilac.status().then(status=>{for(const key of ['roblox','studio'])document.querySelector('#'+key+'-status').textContent=status[key]?'● Installed':'○ Not installed — see README';}).catch(()=>{message.textContent='Could not check Flatpak installations.';});
-render();
+window.lilac.status().then(state=>{for(const key of ['roblox','studio'])document.querySelector('#'+key+'-status').textContent=state[key]?'● Installed':'○ Not installed — see README';}).catch(()=>{message.textContent='Could not check Flatpak installations.';});
+render();search();

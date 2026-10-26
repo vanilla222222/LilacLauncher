@@ -1,6 +1,6 @@
 # LilacLauncher
 
-A personal Linux desktop hub with a lilac theme. Open Roblox through Sober and Roblox Studio through Vinegar. Keep a local game list, mark games as slop, hide them, and restore them using Show hidden.
+A personal Linux desktop hub with a lilac theme. Open Roblox through Sober and Roblox Studio through Vinegar. Search Roblox games with thumbnails and player counts, launch them directly into Sober, save favorites, and mark games as slop to hide them from future results.
 
 ## Run the AppImage
 
@@ -27,14 +27,24 @@ npm run dist
 
 The x86_64 AppImage is written to `dist/`. Build on Linux. The GitHub workflow builds on pushes to main and can also be started manually.
 
-## Current scope
+## Game browser
 
-- Roblox and Studio buttons launch the installed Flatpaks.
-- The library stores game links and slop/hidden flags locally in Electron's application data. Unmarking slop leaves the game hidden until restored.
-- Game entries are currently an organizer; per-game direct launching and custom tag editing are planned.
-- Filters apply to this launcher's library, not Roblox's own Discover interface.
-- Developer testing tools are planned; no executor or client injection is included.
+Search games by keyword, use the category search shortcuts, and load more results. These are Roblox search results, not personalized recommendations or a curated category feed. No Roblox login or cookie is needed for browsing.
 
-This is an initial implementation. Real Sober/Vinegar startup and AppImage behavior need verification on Linux Mint; automated packaging does not exercise Roblox or Studio.
+Each card has Play, Save, Mark slop, and Hide controls. Mark slop also hides the game. Hidden games stay filtered across searches and restarts; use Hidden games or Show hidden to restore them. Unmarking slop does not automatically restore a game. Saved games and filters are stored on this device in Electron application data, separately from the AppImage. Existing version 0.1 game lists migrate automatically.
+
+Play sends a numeric place ID to the installed Sober Flatpak using a Roblox URI. You must log in through Sober to play. A launch request succeeding does not guarantee joining: Roblox may enforce age restrictions, permissions, purchases, or availability.
+
+Public Roblox search and thumbnail APIs can change or rate limit requests. The browser reports failures and keeps saved games usable offline; launching still needs Roblox connectivity. No credentials are collected. Filtering applies only to LilacLauncher.
+
+## Validation
+
+```bash
+npm test
+```
+
+Tests cover response parsing, pagination cursors, failed thumbnail requests, rate limits, thumbnail host validation, and launch argument validation. Live API search and thumbnails were checked during development. Actual GUI/AppImage startup and joining through Sober still need verification on Linux Mint. GitHub-hosted builds currently require resolving the account billing block; local builds remain available.
+
+Developer testing tools are planned; no executor or client injection is included.
 
 Unaffiliated with Roblox, Sober, or Vinegar.

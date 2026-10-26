@@ -1,1 +1,36 @@
-{"name":"lilac-launcher","version":"0.1.0","description":"A personal Sober and Vinegar hub","author":"vanilla","private":true,"main":"main.cjs","scripts":{"start":"electron .","dist":"electron-builder --linux AppImage --x64","test":"node --test"},"devDependencies":{"electron":"45.0.0","electron-builder":"^26.0.0"},"build":{"appId":"io.github.vanilla222222.lilaclauncher","productName":"LilacLauncher","files":["main.cjs","preload.cjs","index.html","renderer.js","style.css"],"linux":{"target":["AppImage"],"category":"Game","artifactName":"LilacLauncher-${version}-${arch}.${ext}"}}}
+{
+  "name": "lilac-launcher",
+  "version": "0.2.0",
+  "description": "A personal Sober and Vinegar hub",
+  "author": "vanilla",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux AppImage --x64",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "io.github.vanilla222222.lilaclauncher",
+    "productName": "LilacLauncher",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "index.html",
+      "renderer.js",
+      "style.css",
+      "browser.cjs"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "artifactName": "LilacLauncher-${version}-${arch}.${ext}"
+    }
+  }
+}
