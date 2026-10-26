@@ -87,3 +87,11 @@ Close any existing runtime before opening the new build. For a palette compariso
 The CSS targets GTK chrome. It does not recolour Roblox's rendered Home screen or game canvas, and X11's native game window decoration remains managed by Cinnamon. Home-screen work is a separate experiment after this theme is verified.
 
 Validation here: ordered patch application, source/prose audit, preserved licence/provenance files, icon XML and square geometry, and whitespace checks. Cargo and GTK4 are unavailable here, so compilation, CSS parser acceptance and visual appearance remain **INFERRED** until checked on Mint. Inspect the first-run screen, settings, About, profile dialogs, diagnostics and error messages, then run the same movement test as the baseline.
+
+## Theme follow-up (patch 0007)
+
+The follow-up installs the theme during application startup, explicitly colours launch controls, warning banners and window surfaces, and adds modern libadwaita CSS variables only on GTK >=4.16. Older GTK keeps the named-colour stylesheet. The launcher now has a flower, wordmark and lilac launch card. Shared plugin and update-library messages use the fork's product name too. Internal technical identifiers, upstream source credit and licence notices remain.
+
+Startup prints `[lilac-theme] palette v2 active` when that stylesheet is loaded. CSS parsing errors are logged with the same prefix. This confirms loading, not correct rendering. The run script now refuses binaries whose successful-build patch manifest does not match the current source stack, preventing a failed rebuild from silently opening an older executable. After pulling this update, complete `prepare.sh` and `build.sh` before `run.sh`.
+
+Visual verification remains pending a Mint run. This palette themes the GTK shell; Cinnamon-managed native X11 window decorations and Roblox-rendered UI are separate surfaces.

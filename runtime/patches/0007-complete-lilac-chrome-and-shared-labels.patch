@@ -1,0 +1,713 @@
+diff --git a/crates/cordial-plugins/src/capability.rs b/crates/cordial-plugins/src/capability.rs
+index c4b0a7d..e172ac3 100644
+--- a/crates/cordial-plugins/src/capability.rs
++++ b/crates/cordial-plugins/src/capability.rs
+@@ -191,7 +191,7 @@ impl Capability {
+     pub fn consequence(self) -> &'static str {
+         match self {
+             Capability::FlagsRead => {
+-                "See which Roblox and Cordial settings are in effect, and which layer set each one. \
++                "See which Roblox and LilacRuntime settings are in effect, and which layer set each one. \
+                  Reading only."
+             }
+             // ADR-020 records what this actually is, and the wording follows
+@@ -203,15 +203,15 @@ impl Capability {
+             // settings" would be technically true and materially misleading,
+             // which is the standard `webview_policy.rs` already holds a URL to.
+             Capability::FlagsWrite => {
+-                "Change how Cordial itself renders and behaves. Sets Roblox FastFlags, and also \
+-                 Cordial's own settings including the graphics backend and present mode. Takes \
++                "Change how LilacRuntime itself renders and behaves. Sets Roblox FastFlags, and also \
++                 LilacRuntime's own settings including the graphics backend and present mode. Takes \
+                  effect at the next launch. Your own choices in Settings still win."
+             }
+             Capability::FlagsWriteDynamic => {
+                 "Change a dynamic Roblox setting while you are playing, without a restart. Static \
+                  settings are read once at startup and cannot be changed this way."
+             }
+-            Capability::Log => "Write lines into Cordial's own log output. Nothing leaves this machine.",
++            Capability::Log => "Write lines into LilacRuntime's own log output. Nothing leaves this machine.",
+             // Every word of this arm is what the *payloads* carry, not what
+             // the event names suggest, and it had drifted from them the day
+             // the client started publishing. It said "launches, becomes ready
+@@ -240,7 +240,7 @@ impl Capability {
+             // ADR-007 calls this out as privacy-relevant and says the UI
+             // should state what it publishes rather than merely that it is on.
+             Capability::PresenceSet => {
+-                "Publish what you are playing to Discord, where your friends can see it. Cordial \
++                "Publish what you are playing to Discord, where your friends can see it. LilacRuntime \
+                  owns the connection; the plugin decides what it says."
+             }
+             Capability::NotifySend => "Show you desktop notifications.",
+@@ -257,7 +257,7 @@ impl Capability {
+             Capability::AssetsOverride => {
+                 "Replace Roblox's own textures, sounds, fonts and models with files it supplies. \
+                  Nothing is written into Roblox's files and removing the plugin puts the originals \
+-                 back. Replacing a model can change more than appearance, and Cordial does not \
++                 back. Replacing a model can change more than appearance, and LilacRuntime does not \
+                  check which is which."
+             }
+             Capability::SettingsRead => "Read what it previously saved for itself. Its own data only.",
+@@ -352,7 +352,7 @@ mod tests {
+         // records that it reaches every `Cordial`-prefixed key, the graphics
+         // backend and present mode included, so the description has to say so.
+         let text = Capability::FlagsWrite.consequence();
+-        assert!(text.contains("Cordial"), "{text:?}");
++        assert!(text.contains("LilacRuntime"), "{text:?}");
+         assert!(text.contains("graphics backend"), "{text:?}");
+         assert!(text.contains("present mode"), "{text:?}");
+     }
+diff --git a/crates/cordial-plugins/src/consent.rs b/crates/cordial-plugins/src/consent.rs
+index 84f4d81..39ef1e1 100644
+--- a/crates/cordial-plugins/src/consent.rs
++++ b/crates/cordial-plugins/src/consent.rs
+@@ -313,7 +313,7 @@ mod tests {
+         let p = parse(r#"{"id":"t","entry":"m.ts","capabilities":["flags.write"]}"#);
+         let Verdict::Ask(prompt) = verdict(&p) else { panic!() };
+         let text = prompt.effects[0].description;
+-        assert!(text.contains("Cordial"), "{text:?}");
++        assert!(text.contains("LilacRuntime"), "{text:?}");
+         assert!(text.contains("graphics backend") && text.contains("present mode"), "{text:?}");
+     }
+ 
+diff --git a/crates/cordial-plugins/src/events.rs b/crates/cordial-plugins/src/events.rs
+index f223107..e6b6ad4 100644
+--- a/crates/cordial-plugins/src/events.rs
++++ b/crates/cordial-plugins/src/events.rs
+@@ -70,7 +70,7 @@ impl EventRegistry {
+     pub fn declare(&mut self, plugin: &str, name: &str) -> Result<EventType, String> {
+         if plugin == CORE_OWNER {
+             return Err(format!(
+-                "{CORE_OWNER:?} is reserved for Cordial's own events; a plugin may not declare under it"
++                "{CORE_OWNER:?} is reserved for LilacRuntime's own events; a plugin may not declare under it"
+             ));
+         }
+         let full = format!("{plugin}/{name}");
+diff --git a/crates/cordial-plugins/src/notify.rs b/crates/cordial-plugins/src/notify.rs
+index 73200f4..45388ec 100644
+--- a/crates/cordial-plugins/src/notify.rs
++++ b/crates/cordial-plugins/src/notify.rs
+@@ -91,7 +91,7 @@ mod tests {
+             eprintln!("skipping: no DBUS_SESSION_BUS_ADDRESS in this environment");
+             return;
+         }
+-        match send("Cordial", "cargo test exercised notify.send") {
++        match send("LilacRuntime", "cargo test exercised notify.send") {
+             Ok(()) => {}
+             Err(e) => panic!("the portal call failed against a real session bus: {e}"),
+         }
+diff --git a/crates/cordial-plugins/src/preferences.rs b/crates/cordial-plugins/src/preferences.rs
+index 7b462c4..6ad8dd0 100644
+--- a/crates/cordial-plugins/src/preferences.rs
++++ b/crates/cordial-plugins/src/preferences.rs
+@@ -618,7 +618,7 @@ pub fn serve(
+                 return Response::Error {
+                     id: req.id,
+                     message: format!(
+-                        "{} needs an open profile; this Cordial has nowhere to keep answers",
++                        "{} needs an open profile; this LilacRuntime has nowhere to keep answers",
+                         req.method
+                     ),
+                 };
+diff --git a/crates/cordial-plugins/src/presence.rs b/crates/cordial-plugins/src/presence.rs
+index 93e31e3..19f390a 100644
+--- a/crates/cordial-plugins/src/presence.rs
++++ b/crates/cordial-plugins/src/presence.rs
+@@ -128,7 +128,7 @@ impl PresencePayload {
+             if let Some(key) = key {
+                 let shaped = key.len() <= 40 && key.bytes().all(|b| b.is_ascii_alphanumeric());
+                 if !key.is_empty() && !shaped {
+-                    return Err(format!("{name} is not a key Cordial issued"));
++                    return Err(format!("{name} is not a key LilacRuntime issued"));
+                 }
+             }
+         }
+@@ -239,7 +239,7 @@ fn resolved_image(key: Option<&str>) -> Option<String> {
+ }
+ 
+ fn cordial_button() -> Value {
+-    json!({ "label": "Cordial on GitHub", "url": "https://github.com/luohoa97/cordial" })
++    json!({ "label": "LilacRuntime on GitHub", "url": "https://github.com/vanilla222222/LilacLauncher" })
+ }
+ 
+ /// The buttons under an activity: at most one about the game, then Cordial's.
+@@ -510,7 +510,7 @@ mod tests {
+             [(None, None), (Some(1u64), None), (Some(1u64), Some("a"))]
+         {
+             let b = super::buttons_for(place, job);
+-            assert_eq!(b.last().unwrap()["label"], "Cordial on GitHub", "{place:?}/{job:?}");
++            assert_eq!(b.last().unwrap()["label"], "LilacRuntime on GitHub", "{place:?}/{job:?}");
+             assert!(b.len() <= 2, "Discord allows two buttons, got {}", b.len());
+         }
+     }
+diff --git a/crates/cordial-plugins/src/registry.rs b/crates/cordial-plugins/src/registry.rs
+index ef5f4a7..813d830 100644
+--- a/crates/cordial-plugins/src/registry.rs
++++ b/crates/cordial-plugins/src/registry.rs
+@@ -177,7 +177,7 @@ impl Index {
+         let raw: RawIndex = serde_json::from_str(text).map_err(|e| e.to_string())?;
+         if raw.format != FORMAT {
+             return Err(format!(
+-                "index format {} is not {FORMAT}; this Cordial cannot read it, and reading the \
++                "index format {} is not {FORMAT}; this LilacRuntime cannot read it, and reading the \
+                  parts it recognises would mean installing a plugin whose declarations it could \
+                  not",
+                 raw.format
+diff --git a/crates/cordial-plugins/src/settings.rs b/crates/cordial-plugins/src/settings.rs
+index 244eb60..4ab74ec 100644
+--- a/crates/cordial-plugins/src/settings.rs
++++ b/crates/cordial-plugins/src/settings.rs
+@@ -159,7 +159,7 @@ pub fn serve(store: Option<&Store>, plugin_id: &str, req: &Request) -> Response
+         return Response::Error {
+             id: req.id,
+             message: format!(
+-                "{} needs an open profile; this Cordial has no settings store",
++                "{} needs an open profile; this LilacRuntime has no settings store",
+                 req.method
+             ),
+         };
+diff --git a/crates/cordial-shell/src/diagnostics.rs b/crates/cordial-shell/src/diagnostics.rs
+index 163c443..32e599d 100644
+--- a/crates/cordial-shell/src/diagnostics.rs
++++ b/crates/cordial-shell/src/diagnostics.rs
+@@ -207,7 +207,7 @@ fn roblox_from(entries: &[cordial_update::store::Entry]) -> String {
+             let how = e.provenance.map(|p| p.label()).unwrap_or_else(|| "source not recorded".into());
+             format!("{} ({how})", e.version)
+         }
+-        None if entries.is_empty() => "none (nothing in Cordial's store yet)".into(),
++        None if entries.is_empty() => "none (nothing in LilacRuntime's store yet)".into(),
+         None => "none runnable (the store holds builds without an APK or a checked signature)".into(),
+     }
+ }
+@@ -218,7 +218,7 @@ fn roblox_from(entries: &[cordial_update::store::Entry]) -> String {
+ /// interleave with every other test in this crate that reads the environment.
+ fn roblox_in(dir: &std::path::Path) -> String {
+     if let Some(v) = cordial_update::cache::recorded_version(dir) {
+-        return format!("{v} (fetched by Cordial)");
++        return format!("{v} (fetched by LilacRuntime)");
+     }
+     match cordial_update::engine::installed_version(dir) {
+         Some(v) => format!("{v} (read from the extracted library)"),
+@@ -250,7 +250,7 @@ pub fn report() -> String {
+         // groups meaning different things and reads as a mistake; and the
+         // version and how it got here are separate questions a reader scans
+         // for separately.
+-        ("Cordial", cordial_shell::version::full()),
++        ("LilacRuntime", cordial_shell::version::full()),
+         // The identifier only. `version::NOTICE` carries the licence and the
+         // project URL together for somebody holding a bare binary, but the row
+         // above already names the version and the block is pasted into this
+@@ -307,7 +307,7 @@ mod tests {
+         // a seventh row was added, and the failure it produced said nothing
+         // about which row was new.
+         const LABELS: [&str; 10] =
+-            ["Cordial", "Licence", "Install", "Build", "Roblox", "System", "Distro", "Session", "Graphics", "VR"];
++            ["LilacRuntime", "Licence", "Install", "Build", "Roblox", "System", "Distro", "Session", "Graphics", "VR"];
+         let text = report();
+         for label in LABELS {
+             let line = text
+@@ -393,7 +393,7 @@ mod roblox_version_tests {
+         let _ = std::fs::remove_dir_all(&dir);
+         std::fs::create_dir_all(&dir).expect("temp dir");
+         cordial_update::cache::record_version(&dir, "2.736.0.1408").expect("record");
+-        assert_eq!(roblox_in(&dir), "2.736.0.1408 (fetched by Cordial)");
++        assert_eq!(roblox_in(&dir), "2.736.0.1408 (fetched by LilacRuntime)");
+         let _ = std::fs::remove_dir_all(&dir);
+     }
+ 
+diff --git a/crates/cordial-shell/src/launch.rs b/crates/cordial-shell/src/launch.rs
+index 9dca7e2..ea1c8ad 100644
+--- a/crates/cordial-shell/src/launch.rs
++++ b/crates/cordial-shell/src/launch.rs
+@@ -850,7 +850,7 @@ pub fn adb_install_hint() -> String {
+     // outright (packaging/io.github.luohoa97.Cordial.yml). So the pull is two
+     // commands on the host, and the import is the file picker's.
+     if in_flatpak() {
+-        return "Cordial's Flatpak has no adb and cannot run the one on your computer. In a terminal, with \
++        return "LilacRuntime's Flatpak has no adb and cannot run the one on your computer. In a terminal, with \
+                 the headset connected and allowed, run `adb shell pm path com.roblox.client`, then \
+                 `adb pull` the path it prints, and choose I Have the APK File in Settings → VR."
+             .into();
+diff --git a/crates/cordial-shell/src/lilac-modern.css b/crates/cordial-shell/src/lilac-modern.css
+new file mode 100644
+index 0000000..5be6ba1
+--- /dev/null
++++ b/crates/cordial-shell/src/lilac-modern.css
+@@ -0,0 +1,20 @@
++:root {
++  --accent-bg-color: #b49ade;
++  --accent-fg-color: #23172f;
++  --accent-color: #d5b8ff;
++  --window-bg-color: #19131f;
++  --window-fg-color: #f4edff;
++  --view-bg-color: #21192b;
++  --view-fg-color: #f4edff;
++  --headerbar-bg-color: #261c32;
++  --headerbar-fg-color: #f4edff;
++  --headerbar-backdrop-color: #211929;
++  --card-bg-color: #30243d;
++  --card-fg-color: #f4edff;
++  --dialog-bg-color: #271d33;
++  --dialog-fg-color: #f4edff;
++  --popover-bg-color: #30243d;
++  --popover-fg-color: #f4edff;
++  --sidebar-bg-color: #21192b;
++  --sidebar-fg-color: #f4edff;
++}
+diff --git a/crates/cordial-shell/src/lilac.css b/crates/cordial-shell/src/lilac.css
+index d2ed0e0..3413b4e 100644
+--- a/crates/cordial-shell/src/lilac.css
++++ b/crates/cordial-shell/src/lilac.css
+@@ -24,3 +24,26 @@
+ .lilac-runtime button.suggested-action:hover { background: #cbb0ed; }
+ .lilac-runtime row:selected { background-color: rgba(180, 154, 222, 0.18); }
+ .lilac-runtime .title-1, .lilac-runtime .title-2 { color: #e0c5ff; }
++
++/* Explicit chrome rules also cover system/user styles using literal blues. */
++window.lilac-runtime, window.lilac-runtime.background {
++  background-color: #19131f;
++  color: #f4edff;
++}
++.lilac-runtime headerbar { background-color: #261c32; color: #f4edff; }
++.lilac-runtime .card, .lilac-runtime .boxed-list { background-color: #30243d; color: #f4edff; }
++.lilac-runtime .navigation-sidebar { background-color: #21192b; color: #f4edff; }
++button.suggested-action, switch:checked, check:checked, radio:checked,
++progressbar progress, scale highlight { background-color: #b49ade; color: #23172f; }
++button.suggested-action:hover { background-color: #cbb0ed; }
++.accent { color: #d5b8ff; }
++
++.lilac-runtime banner { background-color: #382849; color: #eedfff; }
++.lilac-runtime banner button { background-color: #59406f; color: #f4edff; }
++.lilac-runtime .lilac-launch-card {
++  background-image: linear-gradient(145deg, #352448, #241b30);
++  border: 1px solid rgba(205, 170, 245, 0.24);
++  border-radius: 28px;
++  padding: 36px;
++}
++.lilac-runtime .lilac-wordmark { font-size: 30px; font-weight: 700; color: #e0c5ff; }
+diff --git a/crates/cordial-shell/src/lilac_theme.rs b/crates/cordial-shell/src/lilac_theme.rs
+index 8dd5560..39f48df 100644
+--- a/crates/cordial-shell/src/lilac_theme.rs
++++ b/crates/cordial-shell/src/lilac_theme.rs
+@@ -23,8 +23,17 @@ pub fn install() {
+     }
+     adw::StyleManager::default().set_color_scheme(adw::ColorScheme::ForceDark);
+     let provider = gtk::CssProvider::new();
+-    provider.load_from_string(include_str!("lilac.css"));
++    provider.connect_parsing_error(|_, _, error| {
++        eprintln!("[lilac-theme] CSS error: {error}");
++    });
++    let mut sheet = include_str!("lilac.css").to_string();
++    // GTK 4.16 introduced custom properties. Older GTK must never parse them.
++    if gtk::minor_version() >= 16 {
++        sheet.push_str(include_str!("lilac-modern.css"));
++    }
++    provider.load_from_string(&sheet);
+     gtk::style_context_add_provider_for_display(
+-        &display, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 1,
++        &display, &provider, gtk::STYLE_PROVIDER_PRIORITY_USER + 1,
+     );
++    eprintln!("[lilac-theme] palette v2 active; GTK 4.{}; product LilacRuntime", gtk::minor_version());
+ }
+diff --git a/crates/cordial-shell/src/log_export.rs b/crates/cordial-shell/src/log_export.rs
+index ddfeeee..ef91b7e 100644
+--- a/crates/cordial-shell/src/log_export.rs
++++ b/crates/cordial-shell/src/log_export.rs
+@@ -624,7 +624,7 @@ pub fn entries(inputs: &Inputs) -> Vec<Entry> {
+     listed.push(("coredump.txt", "whether a core dump exists, and the command to read it; no core file is included"));
+ 
+     let mut readme = format!(
+-        "Cordial log archive, made by {}.\n\nFiles:\n",
++        "LilacRuntime log archive, made by {}.\n\nFiles:\n",
+         crate::version::full()
+     );
+     for (name, what) in &listed {
+@@ -669,7 +669,7 @@ pub fn coredump_text(listing: Result<String, String>) -> String {
+                        A core file holds the client's memory, session included, so this archive never \
+                        carries one. Keep it, and say so in the issue; a maintainer will say how to share it.\n";
+     match listing {
+-        Err(why) => format!("Cordial could not check for a core dump: {why}.\nIf the client crashed, run this on the host:\n{HOW}"),
++        Err(why) => format!("LilacRuntime could not check for a core dump: {why}.\nIf the client crashed, run this on the host:\n{HOW}"),
+         Ok(text) => {
+             let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+             match lines.last() {
+@@ -685,7 +685,7 @@ pub fn coredump_text(listing: Result<String, String>) -> String {
+ 
+ fn coredump_listing() -> Result<String, String> {
+     if Path::new("/.flatpak-info").exists() {
+-        return Err("Cordial is running inside the Flatpak sandbox, which cannot see the host's coredumpctl".into());
++        return Err("LilacRuntime is running inside the Flatpak sandbox, which cannot see the host's coredumpctl".into());
+     }
+     let out = std::process::Command::new("coredumpctl")
+         .args(["list", "--no-pager", "--no-legend", "-q", "cordial-run"])
+diff --git a/crates/cordial-shell/src/main.rs b/crates/cordial-shell/src/main.rs
+index 2e28f3f..1890246 100644
+--- a/crates/cordial-shell/src/main.rs
++++ b/crates/cordial-shell/src/main.rs
+@@ -261,6 +261,7 @@ fn main() -> libadwaita::glib::ExitCode {
+         app_flags |= gio::ApplicationFlags::NON_UNIQUE;
+     }
+     let app = libadwaita::Application::builder().application_id(APP_ID).flags(app_flags).build();
++    app.connect_startup(|_| cordial_shell::lilac_theme::install());
+ 
+     // The shell, once there is one. A link that arrives while Cordial is
+     // already up is the ordinary case — somebody clicks Play on the website
+diff --git a/crates/cordial-shell/src/window.rs b/crates/cordial-shell/src/window.rs
+index eb9bf46..7218140 100644
+--- a/crates/cordial-shell/src/window.rs
++++ b/crates/cordial-shell/src/window.rs
+@@ -272,13 +272,25 @@ pub fn build(
+     // like a preferences page whatever is in it.
+     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
+     column.set_valign(gtk::Align::Center);
++    column.add_css_class("lilac-launch-card");
++    let mark = gtk::Image::from_icon_name(cordial_shell::branding::current().icon());
++    mark.set_pixel_size(88);
++    mark.set_margin_bottom(8);
++    column.append(&mark);
++    let wordmark = gtk::Label::new(Some("LilacRuntime"));
++    wordmark.add_css_class("lilac-wordmark");
++    column.append(&wordmark);
++    let subtitle = gtk::Label::new(Some("Your little corner of Roblox."));
++    subtitle.add_css_class("dim-label");
++    subtitle.set_margin_bottom(18);
++    column.append(&subtitle);
+     // The Roblox button and nothing under it but the profile's caption, which
+     // is hidden in the ordinary case. VR is started from Settings → VR
+     // (ADR-053, decision 7): the launcher stays one button.
+     column.append(&chooser_widget);
+     column.append(&switcher.note);
+ 
+-    let clamp = adw::Clamp::builder().maximum_size(360).child(&column).build();
++    let clamp = adw::Clamp::builder().maximum_size(440).child(&column).build();
+     clamp.set_margin_top(24);
+     clamp.set_margin_bottom(24);
+     clamp.set_margin_start(24);
+diff --git a/crates/cordial-update/src/apk.rs b/crates/cordial-update/src/apk.rs
+index 8ea7d14..923f0c5 100644
+--- a/crates/cordial-update/src/apk.rs
++++ b/crates/cordial-update/src/apk.rs
+@@ -77,7 +77,7 @@ pub const LIBRARY_IN_APK: &str = "lib/arm64-v8a/libroblox.so";
+ // table.
+ #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+ compile_error!(
+-    "Cordial executes Roblox's own Android build natively and never translates \
++    "LilacRuntime executes Roblox's own Android build natively and never translates \
+      machine code, so it can only be built for an architecture Roblox ships: \
+      x86-64 or aarch64. See docs/multiarch.md."
+ );
+@@ -129,7 +129,7 @@ impl fmt::Display for Refusal {
+             Refusal::ParentTraversal(p) => write!(f, "{p:?} contains \"..\""),
+             Refusal::EscapesRoot(p) => write!(f, "{p:?} lands outside the directory it is being written to"),
+             Refusal::EmptyPath => f.write_str("an entry has no path"),
+-            Refusal::Symlink(p) => write!(f, "{p:?} is a symlink, and no archive Cordial unpacks may hold one"),
++            Refusal::Symlink(p) => write!(f, "{p:?} is a symlink, and no archive LilacRuntime unpacks may hold one"),
+             Refusal::DeviceNode(p) => write!(f, "{p:?} is a device node"),
+             Refusal::Fifo(p) => write!(f, "{p:?} is a FIFO"),
+             Refusal::Socket(p) => write!(f, "{p:?} is a socket"),
+diff --git a/crates/cordial-update/src/apk_signature.rs b/crates/cordial-update/src/apk_signature.rs
+index 4027563..6a104e0 100644
+--- a/crates/cordial-update/src/apk_signature.rs
++++ b/crates/cordial-update/src/apk_signature.rs
+@@ -138,7 +138,7 @@ impl std::fmt::Display for Refusal {
+             }
+             Refusal::UntrustedCertificate { fingerprint } => write!(
+                 f,
+-                "the archive is correctly signed, but by a certificate Cordial does not trust \
++                "the archive is correctly signed, but by a certificate LilacRuntime does not trust \
+                  ({fingerprint})"
+             ),
+             Refusal::SchemeStripped { claimed } => write!(
+@@ -399,7 +399,7 @@ fn verify_signature(alg: u32, key_der: &[u8], signed: &[u8], sig: &[u8]) -> Resu
+         // turn an unsupported archive into a silently unverified one.
+         _ => {
+             return Err(Refusal::SignatureInvalid(
+-                "the archive is signed with an algorithm Cordial does not verify",
++                "the archive is signed with an algorithm LilacRuntime does not verify",
+             ))
+         }
+     };
+diff --git a/crates/cordial-update/src/download.rs b/crates/cordial-update/src/download.rs
+index ca9facc..d71258d 100644
+--- a/crates/cordial-update/src/download.rs
++++ b/crates/cordial-update/src/download.rs
+@@ -200,7 +200,7 @@ impl Source {
+     /// message must not do.
+     pub fn official() -> Result<Self, Refusal> {
+         Err(Refusal::NoSource(
+-            "Roblox publishes no download of its own, so Cordial fetches the build from \
++            "Roblox publishes no download of its own, so LilacRuntime fetches the build from \
+              APKPure and installs it only if Roblox's signing certificate signed it."
+                 .to_string(),
+         ))
+@@ -226,7 +226,7 @@ impl Source {
+         match (url, hash) {
+             (None, None) => None,
+             (Some(_), None) => Some(Err(Refusal::NoSource(format!(
+-                "{url_env} is set and {hash_env} is not. Cordial will not download a build it \
++                "{url_env} is set and {hash_env} is not. LilacRuntime will not download a build it \
+                  cannot check."
+             )))),
+             (None, Some(_)) => Some(Err(Refusal::NoSource(format!(
+@@ -335,14 +335,14 @@ impl fmt::Display for Refusal {
+         match self {
+             Refusal::NoSource(why) => f.write_str(why),
+             Refusal::NotHttps(url) => {
+-                write!(f, "Cordial only downloads over https, and {url} is not.")
++                write!(f, "LilacRuntime only downloads over https, and {url} is not.")
+             }
+             // The reason is already a sentence, so a lead-in would only push the
+             // part somebody needs further along the line.
+             Refusal::Blocked(why) => f.write_str(why),
+             Refusal::Unreachable(u) => write!(f, "{u}"),
+             Refusal::TooLarge { url, limit } => {
+-                write!(f, "The download from {url} was over {limit} bytes, so Cordial stopped it.")
++                write!(f, "The download from {url} was over {limit} bytes, so LilacRuntime stopped it.")
+             }
+             // Both digests stay. This is the message that says somebody was
+             // served something other than what was published, and the two
+diff --git a/crates/cordial-update/src/install.rs b/crates/cordial-update/src/install.rs
+index f02a042..4a1f372 100644
+--- a/crates/cordial-update/src/install.rs
++++ b/crates/cordial-update/src/install.rs
+@@ -158,7 +158,7 @@ impl fmt::Display for Failed {
+             ),
+             Failed::Conflict { version } => write!(
+                 f,
+-                "Cordial already keeps Roblox {version}, and the engine in this download is not \
++                "LilacRuntime already keeps Roblox {version}, and the engine in this download is not \
+                  the same bytes. It will not keep two different engines under one version. If \
+                  you want to replace the kept one, remove it in Settings first."
+             ),
+@@ -233,7 +233,7 @@ pub fn file_into_store(
+         let version = engine::version_of(&engine).filter(|v| store::is_valid_version(v)).ok_or_else(|| {
+             Failed::Io {
+                 path: engine.display().to_string(),
+-                why: "the engine carries no version Cordial can read, so it cannot be kept under one".into(),
++                why: "the engine carries no version LilacRuntime can read, so it cannot be kept under one".into(),
+             }
+         })?;
+         if cancel.stopped() {
+diff --git a/crates/cordial-update/src/lib.rs b/crates/cordial-update/src/lib.rs
+index b3b544a..948cc04 100644
+--- a/crates/cordial-update/src/lib.rs
++++ b/crates/cordial-update/src/lib.rs
+@@ -158,7 +158,7 @@ impl std::fmt::Display for Unreachable {
+                 }
+             }
+             Unreachable::Malformed { url, why } => {
+-                write!(f, "{url} sent a reply Cordial could not read: {why}")
++                write!(f, "{url} sent a reply LilacRuntime could not read: {why}")
+             }
+         }
+     }
+diff --git a/crates/cordial-update/src/metered.rs b/crates/cordial-update/src/metered.rs
+index 6421c46..1e2ba1d 100644
+--- a/crates/cordial-update/src/metered.rs
++++ b/crates/cordial-update/src/metered.rs
+@@ -109,7 +109,7 @@ impl Metered {
+     /// concludes Cordial is wrong rather than that the answer is a guess.
+     pub fn describe(self) -> String {
+         match self {
+-            Metered::Unknown => "Cordial cannot tell whether this connection is metered".into(),
++            Metered::Unknown => "LilacRuntime cannot tell whether this connection is metered".into(),
+             Metered::Yes => "This connection is metered".into(),
+             Metered::No => "This connection is not metered".into(),
+             Metered::GuessYes => "This connection looks metered, such as a phone hotspot".into(),
+@@ -120,7 +120,7 @@ impl Metered {
+             // added to NetworkManager since this was written, and the number is
+             // the whole of what they need to fix it.
+             Metered::Unrecognised(n) => {
+-                format!("Cordial does not recognise what this connection reported ({n})")
++                format!("LilacRuntime does not recognise what this connection reported ({n})")
+             }
+         }
+     }
+diff --git a/crates/cordial-update/src/provider/import.rs b/crates/cordial-update/src/provider/import.rs
+index f0472fd..7009c85 100644
+--- a/crates/cordial-update/src/provider/import.rs
++++ b/crates/cordial-update/src/provider/import.rs
+@@ -134,7 +134,7 @@ pub fn from_file(apk: &Path) -> Result<Found, String> {
+ fn finish(dir: &Path, archives: Archives) -> Result<Found, String> {
+     let version = version_in(&archives)
+         .filter(|v| crate::store::is_valid_version(v))
+-        .ok_or_else(|| format!("the engine in {} carries no version Cordial can read", archives.split.display()))?;
++        .ok_or_else(|| format!("the engine in {} carries no version LilacRuntime can read", archives.split.display()))?;
+     let bytes = archives
+         .distinct()
+         .iter()
+diff --git a/crates/cordial-update/src/provider/mirror.rs b/crates/cordial-update/src/provider/mirror.rs
+index e8bb512..673b94d 100644
+--- a/crates/cordial-update/src/provider/mirror.rs
++++ b/crates/cordial-update/src/provider/mirror.rs
+@@ -203,7 +203,7 @@ impl Mirror {
+         url_policy::check(&url, &url_policy::Allowed::exactly(host.clone())).map_err(|e| {
+             Unreachable::Malformed {
+                 url: url.clone(),
+-                why: format!("{MIRROR_URL_ENV} is not a URL Cordial can fetch from: {e}"),
++                why: format!("{MIRROR_URL_ENV} is not a URL LilacRuntime can fetch from: {e}"),
+             }
+         })?;
+ 
+@@ -468,7 +468,7 @@ pub fn offered() -> Result<Vec<Available>, Unreachable> {
+     if found.is_empty() {
+         return Err(Unreachable::Malformed {
+             url: mirror.metadata_url.clone(),
+-            why: "the version list carries no versions Cordial can read".into(),
++            why: "the version list carries no versions LilacRuntime can read".into(),
+         });
+     }
+     Ok(found)
+@@ -723,7 +723,7 @@ impl Provider for ApkPure {
+                 url: mirror.metadata_url.clone(),
+                 why: format!(
+                     "the mirror offers {} different archives for version {}, which is more \
+-                     than Cordial will try",
++                     than LilacRuntime will try",
+                     urls.len(),
+                     version.name
+                 ),
+diff --git a/crates/cordial-update/src/provider/mod.rs b/crates/cordial-update/src/provider/mod.rs
+index c12560f..9e6d51d 100644
+--- a/crates/cordial-update/src/provider/mod.rs
++++ b/crates/cordial-update/src/provider/mod.rs
+@@ -361,7 +361,7 @@ pub fn obtain(
+     let sources = match preferred {
+         Some(name) => vec![named(name).ok_or_else(|| Unreachable::NoSource {
+             why: format!(
+-                "there is no source called {name}. Cordial knows: {}",
++                "there is no source called {name}. LilacRuntime knows: {}",
+                 all().iter().map(|p| p.name()).collect::<Vec<_>>().join(", ")
+             ),
+         })?],
+@@ -593,7 +593,7 @@ pub(crate) fn obtain_into_store_from(
+     // and a download for the store should not stop an update from running.
+     let _lock = exclusive(
+         &root.join(".downloading"),
+-        "another Cordial window is already downloading a Roblox build. Wait for it to finish.",
++        "another LilacRuntime window is already downloading a Roblox build. Wait for it to finish.",
+     )?;
+ 
+     let staging = root.join(".fetching");
+@@ -761,7 +761,7 @@ pub fn import_into_store_trusting(
+     ensure_room(root)?;
+     let _lock = exclusive(
+         &root.join(".downloading"),
+-        "another Cordial window is already filing a Roblox build. Wait for it to finish.",
++        "another LilacRuntime window is already filing a Roblox build. Wait for it to finish.",
+     )?;
+     let certificate = check_import(found, trusted, cancel, progress)?;
+     let filing = crate::store::Filing { source, signer: certificate, version_code: None };
+diff --git a/crates/cordial-update/src/quest.rs b/crates/cordial-update/src/quest.rs
+index 771803e..ed5e0d7 100644
+--- a/crates/cordial-update/src/quest.rs
++++ b/crates/cordial-update/src/quest.rs
+@@ -185,7 +185,7 @@ pub fn import_files(files: &[PathBuf], root: &Path, trusted: &[String]) -> Resul
+             .ok_or_else(|| Failed::Io {
+                 path: engine.display().to_string(),
+                 why:
+-                    "the engine carries no version Cordial can read, so it cannot be kept under one"
++                    "the engine carries no version LilacRuntime can read, so it cannot be kept under one"
+                         .into(),
+             })?;
+         let entry = store::entry_dir_in(root, &version).expect("checked by is_valid_version above");
+diff --git a/crates/cordial-update/src/store.rs b/crates/cordial-update/src/store.rs
+index 6377224..d47aa85 100644
+--- a/crates/cordial-update/src/store.rs
++++ b/crates/cordial-update/src/store.rs
+@@ -771,7 +771,7 @@ impl Provenance {
+             Source::Mirror => format!("Downloaded{on}"),
+             Source::Sober => format!("Imported from Sober{on}"),
+             Source::File => format!("Imported from a file{on}"),
+-            Source::Legacy => format!("Found on disk by an earlier Cordial, filed{on}"),
++            Source::Legacy => format!("Found on disk by an earlier LilacRuntime, filed{on}"),
+         }
+     }
+ }
+@@ -964,13 +964,13 @@ pub enum Refusal {
+ impl std::fmt::Display for Refusal {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+         match self {
+-            Refusal::Empty => write!(f, "Cordial has no Roblox build yet."),
++            Refusal::Empty => write!(f, "LilacRuntime has no Roblox build yet."),
+             Refusal::NothingUsable { incomplete, unsigned } => {
+-                write!(f, "Cordial's store holds Roblox builds it cannot run.")?;
++                write!(f, "LilacRuntime's store holds Roblox builds it cannot run.")?;
+                 if !unsigned.is_empty() {
+                     write!(
+                         f,
+-                        " Cordial could not establish who signed {}, so it will not run {}.",
++                        " LilacRuntime could not establish who signed {}, so it will not run {}.",
+                         unsigned.join(", "),
+                         if unsigned.len() == 1 { "it" } else { "them" }
+                     )?;
+@@ -986,18 +986,18 @@ impl std::fmt::Display for Refusal {
+             }
+             Refusal::Missing(v) => write!(
+                 f,
+-                "This profile is pinned to Roblox {v}, and that build is not in Cordial's store. \
++                "This profile is pinned to Roblox {v}, and that build is not in LilacRuntime's store. \
+                  Open Settings and choose another version, or choose Latest."
+             ),
+             Refusal::Incomplete(v) => write!(
+                 f,
+-                "This profile is pinned to Roblox {v}, and Cordial kept that build's engine \
++                "This profile is pinned to Roblox {v}, and LilacRuntime kept that build's engine \
+                  without the APK it came from, so its assets are gone and it cannot be run on its \
+-                 own. Choose Latest, or pin a build Cordial has downloaded since."
++                 own. Choose Latest, or pin a build LilacRuntime has downloaded since."
+             ),
+             Refusal::Unsigned(v) => write!(
+                 f,
+-                "This profile is pinned to Roblox {v}, and Cordial has not established who signed \
++                "This profile is pinned to Roblox {v}, and LilacRuntime has not established who signed \
+                  that build, so it will not run it. Choose Latest, or download the build again."
+             ),
+         }
+@@ -1828,7 +1828,7 @@ mod tests {
+         let p = Provenance { source: Source::Sober, at: Some(1_791_081_816) };
+         assert_eq!(p.label(), "Imported from Sober on 4 Oct 2026");
+         assert_eq!(Provenance { source: Source::Mirror, at: None }.label(), "Downloaded");
+-        assert!(Provenance { source: Source::Legacy, at: Some(0) }.label().contains("earlier Cordial"));
++        assert!(Provenance { source: Source::Legacy, at: Some(0) }.label().contains("earlier LilacRuntime"));
+     }
+ 
+     #[test]
+diff --git a/crates/cordial-update/src/url_policy.rs b/crates/cordial-update/src/url_policy.rs
+index d13379b..07bfe85 100644
+--- a/crates/cordial-update/src/url_policy.rs
++++ b/crates/cordial-update/src/url_policy.rs
+@@ -105,20 +105,20 @@ impl std::fmt::Display for Rejected {
+             }
+             Rejected::NotHttps { url, scheme } => write!(
+                 f,
+-                "the provider offered a {scheme} URL and Cordial only fetches over https: {url}"
++                "the provider offered a {scheme} URL and LilacRuntime only fetches over https: {url}"
+             ),
+             Rejected::HostNotAllowed { url, host } => write!(
+                 f,
+-                "the provider tried to send Cordial to {host}, which is not a host it downloads \
++                "the provider tried to send LilacRuntime to {host}, which is not a host it downloads \
+                  from: {url}"
+             ),
+             Rejected::UnexpectedPort { url, port } => write!(
+                 f,
+-                "the provider named port {port} rather than 443, so Cordial did not connect: {url}"
++                "the provider named port {port} rather than 443, so LilacRuntime did not connect: {url}"
+             ),
+             Rejected::CarriesCredentials { url } => write!(
+                 f,
+-                "the provider offered a URL carrying credentials in it, which Cordial refuses \
++                "the provider offered a URL carrying credentials in it, which LilacRuntime refuses \
+                  rather than sends: {url}"
+             ),
+             Rejected::TooManyRedirects { url } => write!(
+@@ -128,7 +128,7 @@ impl std::fmt::Display for Rejected {
+             ),
+             Rejected::RelativeRedirect { url, target } => write!(
+                 f,
+-                "fetching {url} was redirected to {target}, which Cordial cannot resolve safely \
++                "fetching {url} was redirected to {target}, which LilacRuntime cannot resolve safely \
+                  and will not guess at"
+             ),
+         }

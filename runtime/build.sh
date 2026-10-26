@@ -41,4 +41,5 @@ export CARGO_TARGET_DIR="$root/target"
 cd "$source_dir"
 "${cargo_cmd[@]}" test --workspace --locked
 "${cargo_cmd[@]}" build --release --locked --features cordial-shell/webview
+(cd "$root" && sha256sum patches/*.patch) > "$root/target/.lilac-build-patches"
 printf 'Built development binaries in %s/release. Run bash runtime/run.sh from LilacLauncher.\n' "$CARGO_TARGET_DIR"
