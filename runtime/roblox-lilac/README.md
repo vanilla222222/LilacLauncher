@@ -37,3 +37,13 @@ Visit a game loading screen, the in-game Escape menu, and the emote menu if the 
 ## Source
 
 `generate.py` authors all shapes and colour gradients from scratch. Pillow generates the files locally (`python3-pil` on Mint). Generated images and their `manifest.json` live in `generated/`, which is excluded from Git. The manifest lists dimensions and hashes. Generated artwork and the generator are GPL-3.0-or-later, matching the runtime fork source. The pack is experimental and only tested offline for image format, dimensions, hashes and allowed paths.
+
+## If no textures visibly change
+
+The runtime does not always produce the expected end-of-run asset trace file. Use the dedicated capture instead:
+
+```bash
+bash runtime/trace-roblox-lilac.sh
+```
+
+It captures both stdout and stderr while enabling upstream asset and filesystem trace switches. Visit loading, Escape and emote screens, then close the game and runtime. It prints counts for the seven texture families, split between overlay hits, APK hits, misses and ordinary file calls. Share only that summary. The full log stays private under the Git-ignored `generated/trace.*` directory. No Rust rebuild is needed for the helper. No screen change is claimed until a client screenshot or actual lookup confirms it; file calls alone are not proof of successful loading.
