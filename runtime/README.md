@@ -17,7 +17,7 @@ bash runtime/build.sh
 bash runtime/run.sh
 ```
 
-Preparation clones the pinned upstream source into `runtime/source`, applies the identity patch, and fetches upstream submodules. It refuses a different revision or conflicting edits. The build requires GTK >=4.12 and libadwaita >=1.5, runs workspace tests, then builds the shell and runtime with the shell's WebKit feature. Cargo and the C/C++ build will download dependencies and take substantial disk space. If the dependency compiler requires a newer Rust version, update the toolchain and retry.
+Preparation clones the pinned upstream source into `runtime/source`, applies the identity patch, and fetches upstream submodules. It refuses a different revision or conflicting patch hunks and preserves edits outside the patched hunks. Rerun preparation after pulling updates to apply any new patches without recloning. The build requires GTK >=4.12 and libadwaita >=1.5, runs workspace tests, then builds the shell and runtime with the shell's WebKit feature. Cargo and the C/C++ build will download dependencies and take substantial disk space. If the dependency compiler requires a newer Rust version, update the toolchain and retry.
 
 The first run needs Roblox's Android build. Use the upstream import controls. For this deliberately separate data setup, manual import is the most predictable: keep your `base.apk` and `split_config.x86_64.apk` together and choose the base APK in Settings → Roblox → Import from a file. The original Sober files must not be moved or edited. The shell's automatic Sober detection has not been tested with redirected XDG roots.
 
@@ -30,3 +30,14 @@ Verified here: upstream source checkout, patch application/reversal, shell synta
 AppImage packaging is not configured for this fork yet. Do not run upstream release workflows or publish packages under Cordial's identity; they still refer to its repositories and branding. First get a repeatable source build and successful Home/game session, then adapt packaging.
 
 Roblox Home modification and a Luau executor are not implemented. Owning the runtime source does not remove those separate integration problems. This initial fork does not change client integrity checks or the engine binary.
+
+## Updating an existing source checkout
+
+```bash
+git pull
+bash runtime/prepare.sh
+bash runtime/build.sh
+bash runtime/run.sh
+```
+
+Preparation skips already applied patches. The diagnostics identity patch fixes `doctor_run::tests::the_desktop_id_is_the_application_id` after the Lilac shell rename. A failed test stops the build before release binaries are produced; do not skip the test suite to get past it.
