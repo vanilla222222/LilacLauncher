@@ -59,3 +59,13 @@ rg '\[cordial\] (x11-key down=[01] evdev=(17|30|31|32|57) |key path=native down=
 ```
 
 The timestamp patch is diagnostic. It has not been compiled in this environment; actual timing results remain pending a Mint run.
+
+## X11 buffered-input fix (patch 0004)
+
+The old input pump returned whenever the X11 socket was unreadable, even if Xlib already held queued input. That is a queue-management bug: XPending and other Xlib calls can move data off the socket into userspace. Patch 0004 removes the socket-only gate and retains XPending before each XNextEvent and the 64-event drain bound.
+
+A movement trace showed release events delayed by approximately 2.4 and 2.9 seconds relative to the fastest observed delivery. Buffered-event starvation is a matching cause (**INFERRED**); resolving the reported gameplay symptom remains unverified until the patched client is tested. Timestamp logging can add overhead, so first retest ordinary movement without tracing, against the prior build in the same game.
+
+Reference: https://www.x.org/releases/X11R7.6/doc/libX11/specs/libX11/libX11.html (Event Queue Management). XPending accounts for events queued inside Xlib; socket readability does not.
+
+Apply with `bash runtime/prepare.sh`, rebuild with `bash runtime/build.sh`, and run normally with `bash runtime/run.sh`. Verified here: sequential patch application, resulting source and whitespace checks. Cargo tests/build could not run here because Cargo is absent. They remain required by build.sh on the development machine.

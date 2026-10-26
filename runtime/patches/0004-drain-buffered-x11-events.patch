@@ -1,0 +1,67 @@
+--- a/crates/cordial-runtime/src/android/window.rs
++++ b/crates/cordial-runtime/src/android/window.rs
+@@ -1280,11 +1280,11 @@
+ // `looper::pump`'s own ~50ms-timeout loop, on the thread that also owns the
+ // engine's message pump, so any call here that waits is a frame the engine
+ // never gets to render. `XPending`/`XNextEvent` are what actually read queued
+-// events, but calling either when nothing is queued risks a blocking read in
+-// at least some libX11 builds. So every drain starts with a zero-timeout
+-// `poll(2)` on Xlib's own connection fd (`XConnectionNumber`) — a pure
+-// kernel-side check that can only return immediately — and only touches Xlib
+-// at all when that says there is something to read.
++// events. Xlib can already hold events after draining the connection itself,
++// including when a previous pass hit MAX_EVENTS_PER_DRAIN. Socket readability
++// therefore cannot gate the queue check. XPending checks the buffered queue
++// and any available connection data; XNextEvent is called only after it reports
++// an event, so that call never waits for a future event.
+ 
+ /// The common prefix shared by `XKeyEvent`, `XButtonEvent` and `XMotionEvent`.
+ ///
+@@ -1439,21 +1439,6 @@
+     }
+ }
+ 
+-// `*mut c_void` rather than a typed `*mut PollFd`, to match the `poll`
+-// declaration `bionic::mod` already has for the emulated libc's own use of the
+-// same host symbol — `rustc` warns (`clashing_extern_declarations`) about two
+-// `extern "C" fn poll` with different signatures anywhere in the crate, since
+-// both ultimately bind the one process-wide C symbol.
+-extern "C" {
+-    fn poll(fds: *mut c_void, nfds: c_ulong, timeout_ms: c_int) -> c_int;
+-}
+-#[repr(C)]
+-struct PollFd {
+-    fd: c_int,
+-    events: i16,
+-    revents: i16,
+-}
+-const POLLIN: i16 = 0x001;
+ 
+ /// Whether an `Expose` event is the last one in its batch — `count` is how
+ /// many more follow for the same repaint, so 0 is the point at which the
+@@ -1883,22 +1868,14 @@
+             report_keyboard_state((gw, gh));
+         }
+ 
+-        let mut pfd = PollFd { fd: self.conn_fd, events: POLLIN, revents: 0 };
+-        // SAFETY: `pfd` is a live array of length 1; a 0ms timeout makes this a
+-        // pure non-blocking check.
+-        let ready = unsafe { poll(&mut pfd as *mut PollFd as *mut c_void, 1, 0) };
+-        if ready <= 0 {
+-            return;
+-        }
+-
+         // Bounded so a burst of queued motion events cannot turn one drain
+         // call into unbounded work inside the render loop's own timing
+         // budget.
+         const MAX_EVENTS_PER_DRAIN: usize = 64;
+         for _ in 0..MAX_EVENTS_PER_DRAIN {
+-            // SAFETY: `self.display` is open; reached only after `poll` above
+-            // found the connection readable (or a previous iteration left
+-            // events already queued client-side).
++            // SAFETY: `self.display` is open. Check Xlib's queue even when the
++            // socket is no longer readable: input may already be buffered in
++            // userspace. XNextEvent below runs only for a non-empty queue.
+             if unsafe { (self.xlib.pending)(self.display) } <= 0 {
+                 break;
+             }
