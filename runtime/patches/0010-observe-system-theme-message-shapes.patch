@@ -1,0 +1,183 @@
+diff --git a/crates/cordial-runtime/src/bin/load.rs b/crates/cordial-runtime/src/bin/load.rs
+index 109ca98..a8ef89e 100644
+--- a/crates/cordial-runtime/src/bin/load.rs
++++ b/crates/cordial-runtime/src/bin/load.rs
+@@ -5241,6 +5241,7 @@ fn main() -> ExitCode {
+                                                 // clipboard's but after the
+                                                 // same precondition holds.
+                                                 cordial_runtime::webview::arm(|name| lib.symbol(name));
++                                                cordial_runtime::system_theme::arm(|name| lib.symbol(name));
+                                                 // Same shape, same moment,
+                                                 // for a different later
+                                                 // caller: `deeplink::
+diff --git a/crates/cordial-runtime/src/system_theme.rs b/crates/cordial-runtime/src/system_theme.rs
+index f25b4ee..424d38f 100644
+--- a/crates/cordial-runtime/src/system_theme.rs
++++ b/crates/cordial-runtime/src/system_theme.rs
+@@ -6,6 +6,8 @@
+ //! It does not publish a theme message or interpret a getter as a colour setter.
+ 
+ use std::ffi::c_void;
++use std::ffi::{c_char, c_int, CStr, CString};
++use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ 
+ const CLASS: &str = "com/roblox/universalapp/systemtheme/JNISystemThemeProtocol";
+ const GETTERS: &[(&str, &str)] = &[
+@@ -47,6 +49,139 @@ pub fn probe(mut symbol: impl FnMut(&str) -> Option<*mut c_void>) {
+     }
+ }
+ 
++const BUS: &str = "com/roblox/universalapp/messagebus/MessageBus";
++static ARMED: AtomicBool = AtomicBool::new(false);
++static EVENTS: AtomicUsize = AtomicUsize::new(0);
++
++unsafe extern "C" {
++    fn cordial_messagebus_subscribe(
++        f: *mut c_void,
++        message_id: *const c_char,
++        sink: Option<extern "C" fn(*const c_char)>,
++        err: *mut c_char,
++        n: usize,
++    ) -> c_int;
++}
++
++// The schema is unknown. Keep only recognised field names and theme-mode
++// words; an unexpected payload must not turn this probe into a raw log dump.
++fn shape(value: &serde_json::Value, depth: usize) -> String {
++    use serde_json::Value;
++    if depth >= 4 { return "<depth-limit>".into(); }
++    match value {
++        Value::Null => "null".into(),
++        Value::Bool(_) => "<bool>".into(),
++        Value::Number(n) => match n.as_i64() {
++            Some(n @ -1..=10) => format!("{n}"),
++            _ => "<number>".into(),
++        },
++        Value::String(s) => match s.as_str() {
++            "Light" | "Dark" | "System" | "Default" | "Unknown" | "Auto" |
++            "light" | "dark" | "system" | "default" | "unknown" | "auto" |
++            "LIGHT" | "DARK" | "SYSTEM" | "DEFAULT" | "UNKNOWN" | "AUTO" => format!("{s:?}"),
++            _ => "<string>".into(),
++        },
++        Value::Array(values) => format!("<array:{}>", values.len()),
++        Value::Object(fields) => {
++            let parts: Vec<_> = fields.iter().take(8).map(|(key, value)| {
++                let name = match key.as_str() {
++                    "SystemTheme" | "systemTheme" | "theme" | "Theme" |
++                    "data" | "params" | "parameters" | "value" | "Value" |
++                    "mode" | "Mode" | "themeType" | "ThemeType" => key.as_str(),
++                    _ => "<other-field>",
++                };
++                format!("{name}:{}", shape(value, depth + 1))
++            }).collect();
++            format!("{{{}{}}}", parts.join(","), if fields.len() > 8 { ",<field-limit>" } else { "" })
++        },
++    }
++}
++
++fn payload_shape(raw: &str) -> String {
++    if raw.is_empty() { return "<empty>".into(); }
++    if raw.len() > 8192 { return "<oversize>".into(); }
++    match serde_json::from_str::<serde_json::Value>(raw) {
++        Ok(value) => {
++            let result = shape(&value, 0);
++            if result.len() > 1024 { "<shape-limit>".into() } else { result }
++        },
++        Err(_) => "<non-json>".into(),
++    }
++}
++
++fn event(label: &str, payload: *const c_char) {
++    let count = EVENTS.fetch_add(1, Ordering::Relaxed);
++    if count >= 32 {
++        if count == 32 { println!("[lilac-system-theme] event-limit=32"); }
++        return;
++    }
++    if payload.is_null() { return; }
++    // SAFETY: the existing bus shim owns a NUL-terminated std::string for
++    // the duration of this synchronous callback. Nothing retains its pointer.
++    let raw = unsafe { CStr::from_ptr(payload) }.to_string_lossy();
++    println!("[lilac-system-theme] event={label} shape={}", payload_shape(&raw));
++}
++
++extern "C" fn on_set(payload: *const c_char) { event("set", payload); }
++extern "C" fn on_updated(payload: *const c_char) { event("updated", payload); }
++
++/// Listen only after the app bridge exists, beside webview::arm. This reads
++/// cached payloads as well, since startup may publish before subscriptions.
++/// Absence of an event is inconclusive: the client may never use this route.
++pub fn arm(mut symbol: impl FnMut(&str) -> Option<*mut c_void>) {
++    if std::env::var("LILAC_PROBE_SYSTEM_THEME").as_deref() != Ok("1")
++        || ARMED.swap(true, Ordering::Relaxed) { return; }
++    let getter = |method: &str, symbol: &mut dyn FnMut(&str) -> Option<*mut c_void>| {
++        let export = format!("Java_com_roblox_universalapp_systemtheme_JNISystemThemeProtocol_{method}");
++        let native = symbol(&export)?;
++        // SAFETY: same verified zero-argument getter shape as probe().
++        unsafe { cordial_linker_sys::game_activity::call_static_ret_string(native, CLASS) }.ok()
++    };
++    let Some(protocol) = getter("getProtocolName", &mut symbol) else {
++        println!("[lilac-system-theme] listener=<missing-protocol>");
++        return;
++    };
++    let Some(compose) = symbol("Java_com_roblox_universalapp_messagebus_MessageBus_getMessageId") else {
++        println!("[lilac-system-theme] listener=<missing-message-id-native>");
++        return;
++    };
++    let subscribe = symbol("Java_com_roblox_universalapp_messagebus_MessageBus_doSubscribeRaw");
++    let last = symbol("Java_com_roblox_universalapp_messagebus_MessageBus_getLastRaw");
++    for (label, method, sink) in [
++        ("set", "getSystemThemeSetThemeMessage", on_set as extern "C" fn(*const c_char)),
++        ("updated", "getSystemThemeUpdatedMessage", on_updated as extern "C" fn(*const c_char)),
++    ] {
++        let Some(message) = getter(method, &mut symbol) else { continue; };
++        // SAFETY: compose is the same exported MessageBus.getMessageId used
++        // by webview::arm, with its verified two-String/String signature.
++        let Ok(id) = (unsafe { cordial_linker_sys::game_activity::call_static_two_strings_ret_string(
++            compose, BUS, &protocol, &message,
++        ) }) else {
++            println!("[lilac-system-theme] {label}=<message-id-failed>");
++            continue;
++        };
++        if let Some(native) = subscribe {
++            if let Ok(c_id) = CString::new(id.as_str()) {
++                let mut err = [0u8; 512];
++                // SAFETY: the existing per-message subscription shim owns
++                // the callback after return; all input buffers outlive this call.
++                let rc = unsafe { cordial_messagebus_subscribe(native, c_id.as_ptr(),
++                    Some(sink), err.as_mut_ptr().cast(), err.len()) };
++                println!("[lilac-system-theme] {label}-subscribe-call={}", if rc == 0 { "ok" } else { "failed" });
++            }
++        } else {
++            println!("[lilac-system-theme] {label}-subscribe-call=<not-exported>");
++        }
++        if let Some(native) = last {
++            // SAFETY: exact exported getLastRaw(String) native; the existing
++            // shim supplies JNI arguments and rejects truncated output.
++            let cached = unsafe { cordial_linker_sys::game_activity::call_static_string_ret_string(native, BUS, &id) };
++            let result = cached.map(|raw| payload_shape(&raw)).unwrap_or_else(|_| "<read-failed>".into());
++            println!("[lilac-system-theme] cached={label} shape={result}");
++        }
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -60,4 +195,17 @@ mod tests {
+         assert_eq!(identifier(&"x".repeat(129)), None);
+         assert_eq!(identifier("{\"theme\":\"Dark\"}"), None);
+     }
++
++    #[test]
++    fn payload_summary_retains_modes_without_logging_unknown_values() {
++        assert_eq!(payload_shape(r#"{"SystemTheme":"Dark"}"#), "{SystemTheme:\"Dark\"}");
++        assert_eq!(payload_shape(r#"{"data":{"SystemTheme":2}}"#), "{data:{SystemTheme:2}}");
++        assert_eq!(payload_shape(r#"{"token":"secret","theme":"secret","user":1234567}"#),
++            "{theme:<string>,<other-field>:<string>,<other-field>:<number>}");
++        assert_eq!(payload_shape("private non-json"), "<non-json>");
++        assert_eq!(payload_shape(""), "<empty>");
++        assert_eq!(payload_shape(&"x".repeat(8193)), "<oversize>");
++        assert_eq!(payload_shape(r#"{"data":{"data":{"data":{"data":{"theme":"Dark"}}}}}"#),
++            "{data:{data:{data:{data:<depth-limit>}}}}");
++    }
+ }
