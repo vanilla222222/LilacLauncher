@@ -2,3 +2,4 @@ node_modules/
 dist/
 runtime/source/
 runtime/target/
+runtime/roblox-lilac/generated/
