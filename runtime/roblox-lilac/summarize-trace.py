@@ -6,7 +6,8 @@ import re
 import sys
 
 FAMILIES = ('LoadingSpinner', 'BackgroundGlow', 'CircleBackground',
-            'SelectedGradient', 'gr-loading-indicator', 'FPSBackground', 'GridBackground')
+            'SelectedGradient', 'gr-loading-indicator', 'FPSBackground', 'GridBackground',
+            'img_set_1x_1', 'img_set_1x_2', 'img_set_1x_3', 'img_set_1x_4', 'img_set_1x_5')
 
 
 def summarize(text, status):
@@ -14,7 +15,7 @@ def summarize(text, status):
     asset_lines = path_lines = 0
     pack_enabled = False
     for line in text.splitlines():
-        if '[lilac-assets] Original texture pack enabled' in line:
+        if '[lilac-assets]' in line and ('Texture pack v2 enabled' in line or 'Original texture pack enabled' in line):
             pack_enabled = True
         if '[asset]' in line:
             asset_lines += 1

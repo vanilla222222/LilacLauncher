@@ -1,6 +1,6 @@
 # Roblox lilac asset experiment
 
-This opt-in pack supplies original lilac textures through the runtime's existing asset overlay. It contains no Roblox artwork, scripts or binaries. The paths and dimensions match UI texture entries observed in the supplied Android APK.
+This opt-in experiment combines original lilac texture accents with locally tinted copies of six UI sprite sheets confirmed in a client asset trace. The repository contains generator code, not Roblox artwork, scripts or binaries. The sprite copies are generated from your own base.apk and remain in the Git-ignored generated directory.
 
 ## Run
 
@@ -11,11 +11,12 @@ sudo apt install python3-pil
 bash runtime/run-roblox-lilac.sh
 ```
 
-No Rust rebuild is needed for this asset-only change. The helper generates the pack locally on first launch, checks its hashes on subsequent launches, and sets `CORDIAL_OVERLAY` for this launch. To return to the normal assets, close the runtime and start `bash runtime/run.sh`. APK files and Sober's installation are untouched. If you normally use another overlay, this launch selects this pack instead; it does not merge directories.
+No Rust rebuild is needed for this asset-only change. The helper selects the only base.apk in the runtime build store, generates the pack locally, checks its hashes and APK modification metadata on later launches, and sets `CORDIAL_OVERLAY` for this launch. To return to the normal assets, close the runtime and start `bash runtime/run.sh`. APK files and Sober's installation are untouched. If you normally use another overlay, this launch selects this pack instead; it does not merge directories.
 
 ## What it changes when used by this Roblox build
 
-- Loading spinner and small loading indicator textures.
+- Neutral-coloured icons and graphics in the six observed FoundationImages/LuaApp sprite sheets. Coloured status icons and alpha channels are preserved.
+- Loading spinner and small loading indicator textures (only one small indicator was confirmed loaded in the first trace).
 - In-game menu glow textures.
 - Radial emote menu background/selection textures.
 - Packaged sign-in background textures.
@@ -36,7 +37,19 @@ Visit a game loading screen, the in-game Escape menu, and the emote menu if the 
 
 ## Source
 
-`generate.py` authors all shapes and colour gradients from scratch. Pillow generates the files locally (`python3-pil` on Mint). Generated images and their `manifest.json` live in `generated/`, which is excluded from Git. The manifest lists dimensions and hashes. Generated artwork and the generator are GPL-3.0-or-later, matching the runtime fork source. The pack is experimental and only tested offline for image format, dimensions, hashes and allowed paths.
+`generate.py` authors all shapes and colour gradients from scratch. Pillow generates the files locally (`python3-pil` on Mint). If multiple base APKs exist in the runtime store, specify the active build explicitly:
+
+```bash
+LILAC_THEME_APK="/absolute/path/to/base.apk" bash runtime/run-roblox-lilac.sh
+```
+
+The generator never changes that APK. If multiple base APKs exist in the runtime store, specify the active build explicitly:
+
+```bash
+LILAC_THEME_APK="/absolute/path/to/base.apk" bash runtime/run-roblox-lilac.sh
+```
+
+The generator never changes that APK. Generated images and their `manifest.json` live in `generated/`, which is excluded from Git. The manifest lists dimensions and hashes. The generator and original procedural accents are GPL-3.0-or-later. Locally tinted Roblox imagery retains its upstream rights; it is not included in the repository. The pack is experimental and only tested offline for image format, dimensions, hashes and allowed paths.
 
 ## If no textures visibly change
 
@@ -47,3 +60,15 @@ bash runtime/trace-roblox-lilac.sh
 ```
 
 It captures both stdout and stderr while enabling upstream asset and filesystem trace switches. Visit loading, Escape and emote screens, then close the game and runtime. It prints counts for the seven texture families, split between overlay hits, APK hits, misses and ordinary file calls. Share only that summary. The full log stays private under the Git-ignored `generated/trace.*` directory. No Rust rebuild is needed for the helper. No screen change is claimed until a client screenshot or actual lookup confirms it; file calls alone are not proof of successful loading.
+
+## Findings from the first live trace
+
+The pack was enabled and one `gr-loading-indicator` overlay lookup occurred. The standalone spinner, menu glows, emote backgrounds and sign-in backgrounds had no recorded lookups. Six UI atlases were loaded from the APK: FoundationImages `img_set_1x_1` through `img_set_1x_5`, plus LuaApp `img_set_1x_2`. Pack v2 targets these observed paths. That establishes which files were used, not whether their tint survives the engine's later ImageColor3/shader processing; visible results still require an in-client check.
+
+No ordinary filesystem overlay change is needed to test these six files: their recorded lookups already use the Android asset-manager route where the small indicator override succeeded. The separate filesystem-resolver gap remains unverified as a cause of any visible theme failure.
+
+## Findings from the first live trace
+
+The pack was enabled and one `gr-loading-indicator` overlay lookup occurred. The standalone spinner, menu glows, emote backgrounds and sign-in backgrounds had no recorded lookups. Six UI atlases were loaded from the APK: FoundationImages `img_set_1x_1` through `img_set_1x_5`, plus LuaApp `img_set_1x_2`. Pack v2 targets these observed paths. That establishes which files were used, not whether their tint survives later ImageColor3/shader processing; visible results require an in-client check.
+
+No ordinary filesystem overlay change is needed for this test: the observed atlases already use the Android asset-manager route where the small indicator override succeeded. The filesystem-resolver gap remains unverified as a cause of visible theme failure.
