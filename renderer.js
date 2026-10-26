@@ -70,3 +70,13 @@ document.querySelector('#save-script').onclick=()=>{
  try{localStorage.setItem('lilac-script-draft',scriptEditor.value);draftStatus.textContent='Draft saved on this device.';}
  catch{draftStatus.textContent='Could not save the draft. Storage may be full.';}
 };
+
+function showPage(page){
+ const home=page==='home';
+ document.querySelector('#home-page').hidden=!home;
+ document.querySelector('#hub-page').hidden=home;
+ document.querySelector('#home-tab').setAttribute('aria-pressed',String(home));
+ document.querySelector('#hub-tab').setAttribute('aria-pressed',String(!home));
+}
+document.querySelector('#home-tab').onclick=()=>showPage('home');
+document.querySelector('#hub-tab').onclick=()=>showPage('hub');

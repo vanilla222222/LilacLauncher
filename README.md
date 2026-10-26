@@ -27,6 +27,12 @@ npm run dist
 
 The x86_64 AppImage is written to `dist/`. Build on Linux. The GitHub workflow builds on pushes to main and can also be started manually.
 
+## Home screen
+
+LilacLauncher opens directly to its own game browser. Search, save games, and hide slop here, then use Play to launch a specific game through Sober. The Hub tab contains the Roblox, Studio, and Executor workspace buttons. Returning Home preserves the current search and filters.
+
+This is a replacement browsing workflow in a separate app; Sober and Roblox's internal home screen are unchanged. Opening Roblox from Hub still opens its normal interface. No custom runtime is bundled.
+
 ## Game browser
 
 Search games by keyword, use the category search shortcuts, and load more results. These are Roblox search results, not personalized recommendations or a curated category feed. No Roblox login or cookie is needed for browsing.
